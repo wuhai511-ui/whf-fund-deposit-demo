@@ -113,7 +113,7 @@
         </div>
     </div>
     <!-- 弹窗：交易详情/人工处理 -->
-    <div id="modal" class="modal hidden">
+    <div id="myModal" class="modal hidden"> <!-- Changed ID to myModal -->
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h3 id="modal-title">详情</h3>
@@ -122,5 +122,24 @@
     </div>
     <script src="js/mockData.js"></script>
     <script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('myModal'); // Assuming modal has id="myModal"
+    const closeBtn = modal ? modal.querySelector('[data-dismiss="modal"], .close-button') : null; // Added common selector, including .close-button
+    const overlay = modal ? modal.querySelector('.modal-backdrop') : null; // Assuming overlay class
+
+    const hideModal = () => {
+      if (modal) modal.style.display = "none";
+      if (overlay) overlay.style.display = "none";
+    };
+
+    if (closeBtn) {
+      closeBtn.onclick = hideModal;
+    }
+    if (overlay) {
+      overlay.onclick = hideModal;
+    }
+  });
+</script>
 </body>
 </html>
