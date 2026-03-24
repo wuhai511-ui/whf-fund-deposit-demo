@@ -113,7 +113,7 @@
         </div>
     </div>
     <!-- 弹窗：交易详情/人工处理 -->
-    <div id="modal" class="modal hidden">
+    <div id="myModal" class="modal hidden">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
             <h3 id="modal-title">详情</h3>
@@ -122,5 +122,40 @@
     </div>
     <script src="js/mockData.js"></script>
     <script src="js/app.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('myModal'); 
+    const closeBtn = modal ? modal.querySelector('.close-btn') : null; // Use specific selector for close button
+
+    // Function to show modal (adds 'hidden' class)
+    const showModal = () => {
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+    };
+
+    // Function to hide modal (removes 'hidden' class)
+    const hideModal = () => {
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    };
+
+    // Attach event listener to close button
+    if (closeBtn) {
+      closeBtn.onclick = hideModal;
+    }
+
+    // If there's a click outside the modal to close it, we'd add listener here.
+    // For now, focusing on close button.
+    
+    // --- Hypothetical Show Modal Logic ---
+    // Example: If there is an "open modal" button with id="openModalBtn"
+    // const openModalBtn = document.getElementById('openModalBtn');
+    // if (openModalBtn) {
+    //   openModalBtn.onclick = showModal;
+    // }
+  });
+</script>
 </body>
 </html>
