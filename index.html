@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资金预存产品演示</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>资金预存产品 - 演示原型</h1>
+            <p>模拟环境：数据仅存储在本地浏览器内存中，刷新重置。</p>
+        </header>
+
+        <section id="dashboard" class="card">
+            <h2>📊 概览</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="label">总商户数</span>
+                    <span class="value" id="stat-merchants">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">活跃消费者</span>
+                    <span class="value" id="stat-consumers">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">总预存金额</span>
+                    <span class="value" id="stat-total-amount">¥0.00</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid-layout">
+            <!-- 左侧：操作面板 -->
+            <aside class="sidebar">
+                <div class="card">
+                    <h3>➕ 创建预存</h3>
+                    <form id="create-deposit-form">
+                        <div class="form-group">
+                            <label>商户 ID</label>
+                            <select id="deposit-merchant" required>
+                                <!-- JS填充 -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>消费者 ID</label>
+                            <input type="text" id="deposit-consumer" placeholder="例如: user_001" value="user_001" required>
+                        </div>
+                        <div class="form-group">
+                            <label>金额 (¥)</label>
+                            <input type="number" id="deposit-amount" placeholder="100" min="1" required>
+                        </div>
+                        <button type="submit" class="btn-primary">提交预存</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>🔧 模拟异常</h3>
+                    <p class="hint">点击下方按钮模拟下一笔交易的状态</p>
+                    <div class="btn-group">
+                        <button class="btn-outline" onclick="setNextStatus('success')">正常成功</button>
+                        <button class="btn-outline btn-danger" onclick="setNextStatus('failed')">模拟失败</button>
+                    </div>
+                    <p id="next-status-indicator">下笔状态: <span class="badge success">正常</span></p>
+                </div>
+            </aside>
+
+            <!-- 右侧：数据展示 -->
+            <main class="main-content">
+                <div class="card">
+                    <h3>📒 消费者记账簿 (Ledgers)</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ledger ID</th>
+                                    <th>商户</th>
+                                    <th>消费者</th>
+                                    <th>余额</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledger-list">
+                                <!-- JS填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📝 最近交易记录</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>交易流水号</th>
+                                    <th>类型</th>
+                                    <th>金额</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-list">
+                                <!-- JS填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <!-- 弹窗：交易详情/人工处理 -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 id="modal-title">详情</h3>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    <script src="js/mockData.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

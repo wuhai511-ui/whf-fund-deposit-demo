@@ -1,0 +1,144 @@
+:root {
+  --bg: #f4f7fb;
+  --card: #fff;
+  --text: #1f1f1f;
+  --muted: #6b7280;
+  --primary: #4f46e5;
+  --green: #10b981;
+  --red: #ef4444;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+header {
+  margin-bottom: 20px;
+}
+.card {
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.grid-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+}
+.sidebar .card {
+  margin-bottom: 12px;
+}
+.h2, h2, h3 {
+  margin: 0 0 12px;
+}
+.label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
+.value {
+  font-size: 20px;
+  font-weight: 600;
+}
+.form-group {
+  margin-bottom: 12px;
+}
+input, select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+button {
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-outline {
+  background: white;
+  border: 1px solid #ddd;
+}
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+.main-content {
+  min-width: 0;
+}
+.table-container {
+  overflow: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  border-bottom: 1px solid #eee;
+  padding: 8px;
+  text-align: left;
+}
+.badge {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #e5e7eb;
+}
+.badge.success {
+  background: #d1fae5;
+  color: #047857;
+}
+.badge.danger {
+  background: #fecaca;
+  color: #dc2626;
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  min-width: 300px;
+  max-width: 600px;
+  position: relative;
+}
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #6b7280;
+}
+@media (max-width: 900px) {
+  .grid-layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    order: 2;
+  }
+  .main-content {
+    order: 1;
+  }
+}
