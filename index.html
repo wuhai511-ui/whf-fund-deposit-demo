@@ -129,16 +129,25 @@
     const overlay = modal ? modal.querySelector('.modal-backdrop') : null; // Assuming overlay class
 
     const hideModal = () => {
-      if (modal) modal.style.display = "none";
-      if (overlay) overlay.style.display = "none";
+      if (modal) {
+        modal.style.display = "none"; // Hides the modal itself
+      }
+      if (overlay) {
+        overlay.style.display = "none"; // Hides the overlay if it exists
+      }
     };
 
+    // Attach event listener to close button
     if (closeBtn) {
       closeBtn.onclick = hideModal;
     }
+    // Attach event listener to overlay (if it exists and is intended to close modal)
     if (overlay) {
       overlay.onclick = hideModal;
     }
+    // If no overlay element exists, we might need to remove/add a class to the modal itself to hide it,
+    // or control it via CSS. For now, relying on style.display.
+    // If modal is controlled by a 'hidden' class, use modal.classList.add('hidden'); and modal.classList.remove('hidden');
   });
 </script>
 </body>
