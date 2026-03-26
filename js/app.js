@@ -2,7 +2,7 @@
 (function(){
     const form = document.getElementById('create-deposit-form');
     const merchantsSel = document.getElementById('deposit-merchant');
-    const modal = document.getElementById('modal');
+    const modal = document.getElementById('myModal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const closeBtn = document.querySelector('.close-btn');
