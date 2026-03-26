@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>我的账户</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+  <style>
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+      color: white;
+    }
+    .profile-avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      border: 2px solid rgba(255,255,255,0.4);
+      flex-shrink: 0;
+    }
+    .profile-info { flex: 1; }
+    .profile-name { font-size: 20px; font-weight: 700; }
+    .profile-phone { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+    .profile-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.2);
+      padding: 3px 8px; border-radius: 20px;
+      font-size: 11px; margin-top: 6px;
+    }
+    .total-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      margin: -12px 16px 16px;
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 1;
+    }
+    .total-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .total-item .label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .total-item .value { font-size: 22px; font-weight: 700; }
+    .total-item .value.green { color: var(--green); }
+    .total-item .value.red { color: var(--red); }
+    .ledger-card {
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+    }
+    .ledger-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .ledger-icon { font-size: 24px; }
+    .ledger-merchant { font-size: 15px; font-weight: 600; flex: 1; }
+    .ledger-badge { font-size: 10px; }
+    .ledger-balance { font-size: 20px; font-weight: 700; color: var(--green); }
+    .ledger-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .ledger-action {
+      display: flex; gap: 8px; margin-top: 12px;
+    }
+    .ledger-action button { flex: 1; }
+    .action-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--radius-sm);
+      background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .action-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <!-- Navbar -->
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()">
+        <span>‹</span>
+      </div>
+      <div class="navbar-title">
+        <div>我的账户</div>
+      </div>
+      <div class="navbar-right" style="font-size:18px">
+        <a href="../home/index.html" style="color:white">🏠</a>
+      </div>
+    </div>
+
+    <!-- Page Content -->
+    <div class="page-content" style="margin-top:0;padding-top:0">
+
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="profile-avatar">${App.MOCK.currentConsumer.avatar}</div>
+        <div class="profile-info">
+          <div class="profile-name" id="consumerName">加载中...</div>
+          <div class="profile-phone" id="consumerPhone"></div>
+          <div class="profile-badge" id="verifiedBadge" style="display:none">
+            ✓ 已实名认证
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Summary -->
+      <div class="total-card">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">账户总余额</div>
+        <div id="totalBalance" style="font-size:32px;font-weight:700;color:var(--green);margin-bottom:16px">¥0.00</div>
+        <div class="total-row">
+          <div class="total-item">
+            <div class="label">累计预存</div>
+            <div class="value green" id="totalDeposited">¥0.00</div>
+          </div>
+          <div class="total-item">
+            <div class="label">累计消费</div>
+            <div class="value red" id="totalSpent">¥0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="section-title" style="margin:20px 0 12px">快捷操作</div>
+      <div style="display:flex;gap:10px;margin-bottom:20px">
+        <div style="flex:1" onclick="showDepositSheet()">
+          <div class="action-icon" style="margin:0 auto;width:44px">💰</div>
+          <div class="action-item" style="margin-top:4px;text-align:center">预存</div>
+        </div>
+        <a href="../orders/index.html" style="flex:1;text-decoration:none">
+          <div class="action-icon" style="margin:0 auto;width:44px">📋</div>
+          <div class="action-item" style="margin-top:4px;text-align:center">订单</div>
+        </a>
+        <a href="../onboarding/index.html" style="flex:1;text-decoration:none">
+          <div class="action-icon" style="margin:0 auto;width:44px">📝</div>
+          <div class="action-item" style="margin-top:4px;text-align:center">签约</div>
+        </a>
+        <div style="flex:1" onclick="showWithdrawSheet()">
+          <div class="action-icon" style="margin:0 auto;width:44px">💳</div>
+          <div class="action-item" style="margin-top:4px;text-align:center">扣款</div>
+        </div>
+      </div>
+
+      <!-- Ledger List -->
+      <div class="section-title">我的记账簿</div>
+      <div id="ledgerList" class="merchant-list" style="margin-bottom:20px">
+        <!-- JS 填充 -->
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="../home/index.html" class="nav-item">
+        <span class="nav-item-icon">🏠</span>
+        <span class="nav-item-label">首页</span>
+      </a>
+      <a href="../orders/index.html" class="nav-item">
+        <span class="nav-item-icon">📋</span>
+        <span class="nav-item-label">订单</span>
+      </a>
+      <a href="index.html" class="nav-item active">
+        <span class="nav-item-icon">👤</span>
+        <span class="nav-item-label">我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- 预存 Bottom Sheet -->
+  <div id="depositSheet" class="popover hidden">
+    <div class="popover-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <span>💰 预存资金</span>
+        <button onclick="closeSheets()" style="font-size:22px;color:#999;background:none;border:none">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">选择商户 <span class="required">*</span></label>
+          <select class="form-input" id="depositMerchant">
+            <option value="">— 选择商户 —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">预存金额 <span class="required">*</span></label>
+          <div class="amount-input-wrap">
+            <span class="currency">¥</span>
+            <input type="number" id="depositAmount" placeholder="输入金额" min="1" step="0.01">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">备注（可选）</label>
+          <input type="text" class="form-input" id="depositDesc" placeholder="如：首次充值优惠">
+        </div>
+        <button class="btn btn-primary" onclick="submitDeposit()">确认预存</button>
+        <div style="margin-top:12px;text-align:center">
+          <a href="../agreement/index.html" style="color:var(--primary);font-size:13px">查看资金预存服务协议 →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 扣款 Bottom Sheet -->
+  <div id="withdrawSheet" class="popover hidden">
+    <div class="popover-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <span>💳 消费扣款</span>
+        <button onclick="closeSheets()" style="font-size:22px;color:#999;background:none;border:none">×</button>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label class="form-label">选择商户 <span class="required">*</span></label>
+          <select class="form-input" id="withdrawLedgerMerchant" onchange="updateWithdrawLedger()">
+            <option value="">— 选择商户 —</option>
+          </select>
+        </div>
+        <div id="ledgerBalanceInfo" style="background:#f4f6f9;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--text-muted);display:none">
+          当前余额：<strong id="ledgerBalanceDisplay" style="color:var(--green)"></strong>
+        </div>
+        <div class="form-group">
+          <label class="form-label">消费金额 <span class="required">*</span></label>
+          <div class="amount-input-wrap">
+            <span class="currency">¥</span>
+            <input type="number" id="withdrawAmount" placeholder="输入金额" min="0.01" step="0.01">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">消费说明</label>
+          <input type="text" class="form-input" id="withdrawDesc" placeholder="如：美发服务">
+        </div>
+        <button class="btn btn-primary" onclick="submitWithdraw()">确认消费</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const App = window.MobileApp;
+
+    // Consumer profile
+    const consumer = App.MOCK.currentConsumer;
+    document.getElementById('consumerName').textContent = consumer.name;
+    document.getElementById('consumerPhone').textContent = consumer.phone;
+    if (consumer.verified) document.getElementById('verifiedBadge').style.display = 'inline-flex';
+
+    // Stats
+    const ledgers = App.getLedgersByConsumer();
+    const totalBalance = ledgers.reduce((s, l) => s + (l.balance || 0), 0);
+    const totalDeposited = ledgers.reduce((s, l) => s + (l.total_deposited || 0), 0);
+    const totalSpent = ledgers.reduce((s, l) => s + (l.total_spent || 0), 0);
+    document.getElementById('totalBalance').textContent = App.formatMoney(totalBalance);
+    document.getElementById('totalDeposited').textContent = App.formatMoney(totalDeposited);
+    document.getElementById('totalSpent').textContent = App.formatMoney(totalSpent);
+
+    // Ledger list
+    function renderLedgers() {
+      const list = document.getElementById('ledgerList');
+      if (!ledgers.length) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📒</div><div>暂无记账簿</div><div class="empty-desc" style="margin-top:4px">去商户处预存资金即可开通</div></div>';
+        return;
+      }
+      list.innerHTML = ledgers.map(l => `
+        <div class="ledger-card">
+          <div class="ledger-header">
+            <span class="ledger-icon">${l.merchant_logo}</span>
+            <div class="ledger-merchant">${l.merchant_name}</div>
+            <span class="tag ${l.status === 'active' ? 'tag-green' : 'tag-gray'} ledger-badge">${App.statusLabel(l.status)}</span>
+          </div>
+          <div class="ledger-balance">${App.formatMoney(l.balance)}</div>
+          <div class="ledger-sub">累计预存 ${App.formatMoney(l.total_deposited)} · 累计消费 ${App.formatMoney(l.total_spent)}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:6px">更新时间：${App.formatDate(l.updated_at)}</div>
+          <div class="ledger-action">
+            <button class="btn btn-sm btn-outline" onclick="openMerchantDetail('${l.merchant_id}')">商户详情</button>
+            <button class="btn btn-sm btn-primary" onclick="openDepositInLedger('${l.merchant_id}')">追加预存</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    renderLedgers();
+
+    function openMerchantDetail(merchantId) {
+      location.href = `../merchant/index.html?id=${merchantId}`;
+    }
+    function openDepositInLedger(merchantId) {
+      // Pre-select merchant in deposit sheet
+      showDepositSheet();
+      setTimeout(() => {
+        const sel = document.getElementById('depositMerchant');
+        sel.value = merchantId;
+      }, 100);
+    }
+
+    // Populate merchant selectors
+    const merchants = App.MOCK.merchants;
+    const merchantOptions = merchants.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    document.getElementById('depositMerchant').innerHTML = '<option value="">— 选择商户 —</option>' + merchantOptions;
+    document.getElementById('withdrawLedgerMerchant').innerHTML = '<option value="">— 选择商户 —</option>' + merchantOptions;
+
+    function showDepositSheet() {
+      closeSheets();
+      document.getElementById('depositSheet').classList.remove('hidden');
+    }
+    function showWithdrawSheet() {
+      closeSheets();
+      document.getElementById('withdrawSheet').classList.remove('hidden');
+    }
+    function closeSheets() {
+      document.getElementById('depositSheet').classList.add('hidden');
+      document.getElementById('withdrawSheet').classList.add('hidden');
+    }
+    // 点击遮罩关闭
+    document.querySelectorAll('.popover').forEach(el => {
+      el.addEventListener('click', function(e) {
+        if (e.target === this) closeSheets();
+      });
+    });
+
+    function updateWithdrawLedger() {
+      const merchantId = document.getElementById('withdrawLedgerMerchant').value;
+      const ledger = App.getLedgerByMerchant(merchantId);
+      const info = document.getElementById('ledgerBalanceInfo');
+      if (ledger) {
+        info.style.display = 'block';
+        document.getElementById('ledgerBalanceDisplay').textContent = App.formatMoney(ledger.balance);
+      } else {
+        info.style.display = 'none';
+      }
+    }
+
+    async function submitDeposit() {
+      const merchantId = document.getElementById('depositMerchant').value;
+      const amount = parseFloat(document.getElementById('depositAmount').value);
+      const desc = document.getElementById('depositDesc').value.trim() || '预存资金';
+      if (!merchantId) return App.showToast('请选择商户');
+      if (!amount || amount <= 0) return App.showToast('请输入有效金额');
+      App.showToast('预存处理中...');
+      try {
+        await App.doDeposit(merchantId, amount, desc);
+        closeSheets();
+        App.showToast('预存成功！');
+        renderLedgers();
+        // Update stats
+        const newLedger = App.getLedgerByMerchant(merchantId) || { balance: amount, total_deposited: amount, total_spent: 0 };
+        document.getElementById('totalBalance').textContent = App.formatMoney(totalBalance + amount);
+      } catch(e) {
+        App.showToast('预存失败: ' + e.message);
+      }
+    }
+
+    async function submitWithdraw() {
+      const merchantId = document.getElementById('withdrawLedgerMerchant').value;
+      const amount = parseFloat(document.getElementById('withdrawAmount').value);
+      const desc = document.getElementById('withdrawDesc').value.trim() || '消费';
+      if (!merchantId) return App.showToast('请选择商户');
+      const ledger = App.getLedgerByMerchant(merchantId);
+      if (!ledger) return App.showToast('该商户没有记账簿');
+      if (!amount || amount <= 0) return App.showToast('请输入有效金额');
+      if (ledger.balance < amount) return App.showToast('余额不足');
+      App.showToast('处理中...');
+      try {
+        await App.doWithdraw(ledger.id, amount, desc);
+        closeSheets();
+        App.showToast('扣款成功！');
+        renderLedgers();
+      } catch(e) {
+        App.showToast('扣款失败: ' + e.message);
+      }
+    }
+  </script>
+</body>
+</html>

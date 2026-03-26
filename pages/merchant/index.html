@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>商户详情</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+  <style>
+    .merchant-header {
+      background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+      padding: 20px 16px 24px;
+      color: white;
+    }
+    .merchant-logo-big {
+      width: 64px; height: 64px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+    .merchant-name-big { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .merchant-meta { font-size: 13px; opacity: 0.85; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .merchant-stats-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      background: rgba(255,255,255,0.15);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-top: 16px;
+      gap: 8px;
+    }
+    .stat-col { text-align: center; }
+    .stat-col .val { font-size: 18px; font-weight: 700; }
+    .stat-col .lbl { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+    .service-card {
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: white;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .service-card:active { background: #f5f5f5; }
+    .service-icon { font-size: 28px; flex-shrink: 0; }
+    .service-info { flex: 1; min-width: 0; }
+    .service-name { font-size: 14px; font-weight: 500; }
+    .service-duration { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .service-price { font-size: 18px; font-weight: 700; color: var(--orange); flex-shrink: 0; }
+    .service-price .unit { font-size: 11px; font-weight: 400; color: var(--text-muted); }
+    .ledger-tip {
+      background: var(--green-light);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--green);
+    }
+    .ledger-tip-icon { font-size: 22px; flex-shrink: 0; }
+    .ledger-tip-balance { font-size: 20px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()"><span>‹</span></div>
+      <div class="navbar-title"><div>商户详情</div></div>
+      <div class="navbar-right"></div>
+    </div>
+
+    <div class="page-content" style="margin-top:0;padding-top:0" id="pageContent">
+      <!-- JS renders here -->
+    </div>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const App = MobileApp;
+    const merchantId = App.getQuery('id') || 'm_001';
+    const merchant = App.getMerchant(merchantId);
+    const services = App.getServicesByMerchant(merchantId);
+    const ledger = App.getLedgerByMerchant(merchantId);
+
+    if (!merchant) {
+      document.getElementById('pageContent').innerHTML = '<div class="empty-state"><div class="empty-icon">❓</div><div>商户不存在</div></div>';
+    } else {
+      document.getElementById('pageContent').innerHTML = `
+        <!-- Merchant Header -->
+        <div class="merchant-header">
+          <div class="merchant-logo-big">${merchant.logo}</div>
+          <div class="merchant-name-big">${merchant.name}</div>
+          <div class="merchant-meta">
+            <span>⭐ ${merchant.rating}</span>
+            <span>📍 ${merchant.address}</span>
+          </div>
+          <div class="merchant-meta" style="margin-top:4px">
+            ${merchant.tags.map(t => `<span class="tag" style="background:rgba(255,255,255,0.2);color:white;font-size:11px">${t}</span>`).join('')}
+          </div>
+          <div class="merchant-stats-row">
+            <div class="stat-col"><div class="val">${merchant.service_count}</div><div class="lbl">服务项目</div></div>
+            <div class="stat-col"><div class="val">${merchant.rating}</div><div class="lbl">评分</div></div>
+            <div class="stat-col"><div class="val">${merchant.industry}</div><div class="lbl">行业</div></div>
+          </div>
+        </div>
+
+        <div style="padding:16px">
+          <!-- Ledger Balance Tip -->
+          <div id="ledgerTip" style="margin-bottom:16px"></div>
+
+          <!-- Description -->
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-body" style="padding:12px 16px">
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">${merchant.description}</div>
+            </div>
+          </div>
+
+          <!-- Services -->
+          <div class="section-title">服务项目 <span style="font-size:12px;color:var(--text-muted);font-weight:400">（${services.length}项）</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:80px" id="serviceList">
+            ${services.length ? services.map(s => `
+              <div class="service-card" onclick="goCheckout('${merchantId}', '${s.id}')">
+                <div class="service-info">
+                  <div class="service-name">
+                    ${s.name}
+                    ${s.tag ? `<span class="tag tag-orange" style="margin-left:6px;font-size:10px">${s.tag}</span>` : ''}
+                  </div>
+                  <div class="service-duration">⏱ ${s.duration}分钟 · ${s.unit}</div>
+                </div>
+                <div class="service-price">${App.formatMoney(s.price)}<span class="unit">/${s.unit}</span></div>
+              </div>
+            `).join('') : '<div class="empty-state" style="padding:20px"><div>暂无服务项目</div></div>'}
+          </div>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div style="position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + var(--safe-bottom));background:white;box-shadow:0 -2px 10px rgba(0,0,0,0.08);display:flex;gap:10px;z-index:99">
+          <button class="btn btn-outline" onclick="goDeposit()" style="flex:1">💰 预存</button>
+          <button class="btn btn-primary" onclick="goCheckout()" style="flex:1">立即购买</button>
+        </div>
+      `;
+
+      // Render ledger tip
+      if (ledger) {
+        document.getElementById('ledgerTip').outerHTML = `
+          <div class="ledger-tip">
+            <div class="ledger-tip-icon">📒</div>
+            <div style="flex:1">
+              <div style="font-size:12px;opacity:0.8">您在该商户的记账簿余额</div>
+              <div class="ledger-tip-balance">${App.formatMoney(ledger.balance)}</div>
+            </div>
+            <div style="font-size:12px;opacity:0.8">${App.statusLabel(ledger.status)}</div>
+          </div>
+        `;
+      } else {
+        document.getElementById('ledgerTip').outerHTML = `
+          <div class="ledger-tip" style="background:#f4f6f9;color:var(--text-secondary)">
+            <div class="ledger-tip-icon">💡</div>
+            <div style="flex:1;font-size:13px">还没有预存过该商户？先预存可享优惠</div>
+          </div>
+        `;
+      }
+    }
+
+    function goCheckout(merchantId, serviceId) {
+      const params = new URLSearchParams({ merchant: merchantId });
+      if (serviceId) params.set('service', serviceId);
+      location.href = `../checkout/index.html?${params}`;
+    }
+    function goDeposit() {
+      // Pre-select this merchant in account page via URL param
+      location.href = `../account/index.html?deposit=${merchantId}`;
+    }
+  </script>
+</body>
+</html>

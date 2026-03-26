@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>资金预存服务协议</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+  <style>
+    .agreement-doc {
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      font-size: 14px;
+      line-height: 2;
+      color: var(--text-secondary);
+    }
+    .agreement-doc h2 { font-size: 16px; font-weight: 700; color: var(--text); margin: 20px 0 8px; }
+    .agreement-doc h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 16px 0 6px; }
+    .agreement-doc p { margin-bottom: 10px; }
+    .agreement-doc ol, .agreement-doc ul { padding-left: 20px; margin-bottom: 10px; }
+    .agreement-doc li { margin-bottom: 4px; }
+    .agreement-doc strong { color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()"><span>‹</span></div>
+      <div class="navbar-title"><div>服务协议</div></div>
+      <div class="navbar-right"></div>
+    </div>
+
+    <div class="page-content">
+      <div class="agreement-doc" id="agreementContent">
+        <!-- JS fills -->
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const agr = MobileApp.MOCK.agreements[0];
+    document.getElementById('agreementContent').innerHTML = `
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:20px;font-weight:700;color:var(--text)">${agr.title}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px">版本：${agr.version} · 更新日期：${agr.updated_at}</div>
+      </div>
+      ${agr.content.split('\n\n').map(p => p.trim()).filter(Boolean).map(p => {
+        if (p.startsWith('**') && p.endsWith('**')) {
+          return `<h2>${p.replace(/\*\*/g, '')}</h2>`;
+        }
+        return `<p>${p.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+      }).join('')}
+    `;
+  </script>
+</body>
+</html>

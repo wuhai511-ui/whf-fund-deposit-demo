@@ -1,0 +1,185 @@
+{
+  "merchants": [
+    {
+      "id": "m_a59bc2a4",
+      "name": "商户A（美容美发）",
+      "industry": "beauty",
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.016Z"
+    },
+    {
+      "id": "m_dab1a21c",
+      "name": "商户B（餐饮连锁）",
+      "industry": "catering",
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.017Z"
+    },
+    {
+      "id": "m_4946416d",
+      "name": "商户C（教育培训）",
+      "industry": "education",
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.017Z"
+    }
+  ],
+  "consumers": [
+    {
+      "id": "c_9edb01f2",
+      "name": "张三",
+      "phone": "13800138001",
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.020Z"
+    },
+    {
+      "id": "c_4300fc40",
+      "name": "李四",
+      "phone": "13800138002",
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.020Z"
+    },
+    {
+      "id": "c_2cc1f894",
+      "name": "王五",
+      "phone": "13800138003",
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.020Z"
+    }
+  ],
+  "ledgers": [
+    {
+      "id": "ld_35047ac7",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_9edb01f2",
+      "balance": 1200,
+      "total_deposited": 1500,
+      "total_spent": 300,
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.139Z",
+      "updated_at": "2026-03-26T07:04:29.139Z"
+    },
+    {
+      "id": "ld_7a29687a",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_4300fc40",
+      "balance": 800,
+      "total_deposited": 1000,
+      "total_spent": 200,
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.139Z",
+      "updated_at": "2026-03-26T07:04:29.139Z"
+    },
+    {
+      "id": "ld_e3f9b947",
+      "merchant_id": "m_dab1a21c",
+      "consumer_id": "c_9edb01f2",
+      "balance": 500,
+      "total_deposited": 500,
+      "total_spent": 0,
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.139Z",
+      "updated_at": "2026-03-26T07:04:29.139Z"
+    },
+    {
+      "id": "ld_f0ed375f",
+      "merchant_id": "m_dab1a21c",
+      "consumer_id": "c_2cc1f894",
+      "balance": 300,
+      "total_deposited": 300,
+      "total_spent": 0,
+      "status": "active",
+      "created_at": "2026-03-26T07:04:29.139Z",
+      "updated_at": "2026-03-26T07:04:29.139Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "t_035042b6",
+      "ledger_id": "ld_35047ac7",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_9edb01f2",
+      "type": "deposit",
+      "amount": 1500,
+      "balance_before": 0,
+      "balance_after": 1500,
+      "status": "completed",
+      "description": "首次预存",
+      "created_at": "2026-03-21T07:04:29.141Z"
+    },
+    {
+      "id": "t_464ed32b",
+      "ledger_id": "ld_35047ac7",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_9edb01f2",
+      "type": "withdraw",
+      "amount": 150,
+      "balance_before": 1500,
+      "balance_after": 1350,
+      "status": "completed",
+      "description": "美发服务",
+      "created_at": "2026-03-22T07:04:29.141Z"
+    },
+    {
+      "id": "t_c36366ff",
+      "ledger_id": "ld_35047ac7",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_9edb01f2",
+      "type": "withdraw",
+      "amount": 150,
+      "balance_before": 1350,
+      "balance_after": 1200,
+      "status": "completed",
+      "description": "美发服务",
+      "created_at": "2026-03-24T07:04:29.141Z"
+    },
+    {
+      "id": "t_4d73dda6",
+      "ledger_id": "ld_7a29687a",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_4300fc40",
+      "type": "deposit",
+      "amount": 1000,
+      "balance_before": 0,
+      "balance_after": 1000,
+      "status": "completed",
+      "description": "首次预存",
+      "created_at": "2026-03-23T07:04:29.141Z"
+    },
+    {
+      "id": "t_8eec3e03",
+      "ledger_id": "ld_7a29687a",
+      "merchant_id": "m_a59bc2a4",
+      "consumer_id": "c_4300fc40",
+      "type": "withdraw",
+      "amount": 200,
+      "balance_before": 1000,
+      "balance_after": 800,
+      "status": "completed",
+      "description": "美容护理",
+      "created_at": "2026-03-25T07:04:29.141Z"
+    },
+    {
+      "id": "t_3d221dbd",
+      "ledger_id": "ld_e3f9b947",
+      "merchant_id": "m_dab1a21c",
+      "consumer_id": "c_9edb01f2",
+      "type": "deposit",
+      "amount": 500,
+      "balance_before": 0,
+      "balance_after": 500,
+      "status": "completed",
+      "description": "餐饮预存",
+      "created_at": "2026-03-20T07:04:29.141Z"
+    }
+  ],
+  "settlements": [],
+  "agreements": [],
+  "admins": [
+    {
+      "id": "a_a6217bf5",
+      "username": "admin",
+      "password": "$2a$10$IiMaca.cKUz2zOrfdezUmuRztcM62icOcI6V5mVu1CXaLt6Kivxde",
+      "role": "super_admin",
+      "created_at": "2026-03-26T07:04:29.139Z"
+    }
+  ]
+}

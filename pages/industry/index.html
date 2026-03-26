@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>行业分类</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+  <style>
+    .industry-list { display: flex; flex-direction: column; gap: 12px; }
+    .industry-item {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      gap: 14px;
+      transition: all 0.15s;
+    }
+    .industry-item:active { background: #f5f5f5; }
+    .industry-icon {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-sm);
+      background: var(--primary-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .industry-info { flex: 1; }
+    .industry-name { font-size: 15px; font-weight: 600; }
+    .industry-count { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .industry-arrow { color: #ccc; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()"><span>‹</span></div>
+      <div class="navbar-title"><div>行业分类</div></div>
+      <div class="navbar-right"></div>
+    </div>
+
+    <div class="page-content">
+      <div class="section-title">全部行业</div>
+      <div class="industry-list" id="industryList">
+        <!-- JS renders -->
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="../home/index.html" class="nav-item active">
+        <span class="nav-item-icon">🏠</span>
+        <span class="nav-item-label">首页</span>
+      </a>
+      <a href="../orders/index.html" class="nav-item">
+        <span class="nav-item-icon">📋</span>
+        <span class="nav-item-label">订单</span>
+      </a>
+      <a href="../account/index.html" class="nav-item">
+        <span class="nav-item-icon">👤</span>
+        <span class="nav-item-label">我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const App = MobileApp;
+    const industries = App.MOCK.industries;
+    document.getElementById('industryList').innerHTML = industries.map(ind => `
+      <div class="industry-item" onclick="goMerchantList('${ind.id}')">
+        <div class="industry-icon">${ind.icon}</div>
+        <div class="industry-info">
+          <div class="industry-name">${ind.name}</div>
+          <div class="industry-count">${ind.count} 家商户</div>
+        </div>
+        <div class="industry-arrow">›</div>
+      </div>
+    `).join('');
+
+    function goMerchantList(industryId) {
+      // 模拟进入该行业的商户列表页
+      // 实际项目中可以跳转到 filter 页面
+      App.showToast('进入 ' + industryId + ' 商户列表');
+    }
+  </script>
+</body>
+</html>

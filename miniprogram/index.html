@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>资金预存 - C端小程序</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vant@4.8.4/lib/index.css">
+<script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vant@4.8.4/lib/index.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;max-width:430px;margin:0 auto}
+.app{min-height:100vh;padding-bottom:70px}
+.page{min-height:100vh;background:#f5f5f5;padding-bottom:20px}
+.page-header{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:20px;display:flex;align-items:center;gap:12px}
+.back-btn{font-size:20px;cursor:pointer}
+.page-title-text{font-size:17px;font-weight:600}
+.fade-in{animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Header */
+.header{background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;padding:24px 20px 44px;position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-50%;right:-20%;width:200px;height:200px;background:rgba(255,255,255,0.1);border-radius:50%}
+.header-title{font-size:18px;font-weight:600;position:relative;z-index:1}
+.header-subtitle{font-size:12px;opacity:0.8;margin-top:4px;position:relative;z-index:1}
+/* User card */
+.user-card{background:#fff;margin:-28px 16px 16px;border-radius:16px;padding:20px;box-shadow:0 4px 20px rgba(0,0,0,0.08);position:relative;z-index:1;cursor:pointer;transition:transform 0.2s}
+.user-card:active{transform:scale(0.98)}
+.user-info{display:flex;align-items:center;gap:12px}
+.avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+.user-detail{flex:1}
+.user-name{font-size:18px;font-weight:700;color:#1a1a1a}
+.user-id{font-size:11px;color:#999;margin-top:2px}
+/* Account card */
+.account-card{background:#fff;margin:0 16px 16px;border-radius:16px;padding:24px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.account-balance{text-align:center;padding:8px 0}
+.balance-label{font-size:13px;color:#888}
+.balance-value{font-size:38px;font-weight:800;color:#1a1a1a;margin-top:8px;font-family:system-ui}
+.balance-unit{font-size:16px;font-weight:400;color:#888}
+.frozen-balance{font-size:12px;color:#f59e0b;margin-top:4px}
+.balance-btn{margin-top:20px;display:flex;gap:12px;justify-content:center}
+/* Section */
+.section{background:#fff;margin:0 16px 16px;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)}
+.section-title{padding:16px 20px;font-size:15px;font-weight:700;color:#1a1a1a;border-bottom:1px solid #f5f5f5;display:flex;justify-content:space-between;align-items:center}
+.section-title .more{font-size:12px;color:#999;font-weight:400;cursor:pointer}
+/* Menu grid */
+.menu-grid{display:grid;grid-template-columns:repeat(4,1fr);padding:16px;gap:16px}
+.menu-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform 0.2s}
+.menu-item:active{transform:scale(0.95)}
+.menu-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.menu-text{font-size:11px;color:#666;text-align:center;margin-top:2px}
+/* Order item */
+.order-item{padding:16px 20px;border-bottom:1px solid #f5f5f5;cursor:pointer;transition:background 0.2s}
+.order-item:last-child{border-bottom:none}
+.order-item:active{background:#f9f9f9}
+.order-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.order-merchant{font-size:14px;font-weight:600;color:#1a1a1a}
+.order-status{font-size:12px;font-weight:600}
+.order-status.success{color:#10b981}
+.order-status.pending{color:#f59e0b}
+.order-status.danger{color:#ef4444}
+.order-time{font-size:11px;color:#999;margin-top:2px}
+.order-amount{font-size:18px;font-weight:700;color:#e6a23c;margin-top:8px}
+/* Tabbar */
+.tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#fff;border-top:1px solid #f0f0f0;display:flex;justify-content:space-around;padding:8px 0;z-index:100}
+.tabbar-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#999;cursor:pointer;padding:4px 16px;transition:color 0.2s}
+.tabbar-item.active{color:#6366f1}
+.tabbar-icon{font-size:22px}
+/* Form */
+.form-card{margin:16px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+.form-group{margin-bottom:20px}
+.form-label{font-size:14px;color:#333;font-weight:600;margin-bottom:8px;display:block}
+.form-input{border:1px solid #e6e6e6;border-radius:10px;padding:12px;font-size:14px;width:100%;outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:#6366f1}
+/* Merchant card */
+.merchant-card{background:#fff;margin:0 16px 12px;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:flex;gap:12px;cursor:pointer;transition:transform 0.2s}
+.merchant-card:active{transform:scale(0.98)}
+.merchant-avatar{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#ede9fe,#ddd6fe);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.merchant-info{flex:1}
+.merchant-name{font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+.merchant-industry{font-size:12px;color:#888}
+.merchant-balance{font-size:13px;color:#10b981;font-weight:600;margin-top:4px}
+/* Status banner */
+.status-banner{padding:20px;margin:16px;border-radius:12px;text-align:center;font-size:14px}
+.status-banner.success{background:#e8f5e9;color:#10b981}
+.status-banner.warning{background:#fff8e1;color:#f59e0b}
+.status-banner.danger{background:#ffebee;color:#ef4444}
+.status-banner.info{background:#e3f2fd;color:#6366f1}
+/* Action bar */
+.action-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:#fff;border-top:1px solid #f0f0f0;padding:12px 16px;z-index:100}
+.action-btn{width:100%;padding:14px;border-radius:24px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:16px;font-weight:600;border:none;cursor:pointer;transition:opacity 0.2s}
+.action-btn:active{opacity:0.9}
+.action-btn:disabled{opacity:0.5;cursor:not-allowed}
+/* Agreement */
+.agreement-card{margin:16px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);max-height:400px;overflow-y:auto;font-size:13px;color:#555;line-height:1.8}
+/* Tab */
+.van-tabs__nav{background:#fff!important}
+</style>
+</head>
+<body>
+<div id="app" class="app">
+
+<!-- ===== 首页 ===== -->
+<div v-if="activeTab==='home'" class="page fade-in">
+  <div class="header">
+    <div class="header-title">资金预存</div>
+    <div class="header-subtitle">安全便捷的资金管理</div>
+  </div>
+
+  <!-- 用户卡片 -->
+  <div class="user-card" @click="switchTab('account')">
+    <div class="user-info">
+      <div class="avatar">👤</div>
+      <div class="user-detail">
+        <div class="user-name">{{currentUser.name}}</div>
+        <div class="user-id">ID: {{currentUser.id}}</div>
+      </div>
+      <van-icon name="arrow" size="18" color="#ccc"/>
+    </div>
+  </div>
+
+  <!-- 账户余额 -->
+  <div class="account-card">
+    <div class="account-balance">
+      <div class="balance-label">我的余额（元）</div>
+      <div class="balance-value">¥ {{currentUser.balance.toLocaleString()}}<span class="balance-unit"></span></div>
+      <div class="frozen-balance" v-if="currentUser.frozenBalance>0">🔒 冻结金额：¥ {{currentUser.frozenBalance.toLocaleString()}}</div>
+      <div class="balance-btn">
+        <van-button type="primary" size="small" round @click.stop="switchTab('deposit')">预存</van-button>
+        <van-button type="default" size="small" round @click.stop="switchTab('records')">明细</van-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 状态引导 -->
+  <div v-if="currentUser.status!=='active'" class="status-banner warning">
+    <div style="font-size:28px;margin-bottom:8px">⚠️</div>
+    <div style="font-weight:600;margin-bottom:4px">账户 {{statusText[currentUser.status]}}</div>
+    <div style="font-size:12px;opacity:0.8">{{statusDesc[currentUser.status]}}</div>
+  </div>
+
+  <!-- 功能菜单 -->
+  <div class="section">
+    <div class="section-title">全部功能<span class="more">共5个</span></div>
+    <div class="menu-grid">
+      <div class="menu-item" @click="switchTab('deposit')"><div class="menu-icon" style="background:#e8f5e9">💰</div><span class="menu-text">预存</span></div>
+      <div class="menu-item" @click="switchTab('records')"><div class="menu-icon" style="background:#ede9fe">📝</div><span class="menu-text">交易记录</span></div>
+      <div class="menu-item" @click="switchTab('merchant-list')"><div class="menu-icon" style="background:#dbeafe">🏪</div><span class="menu-text">商户</span></div>
+      <div class="menu-item" @click="switchTab('agreement')"><div class="menu-icon" style="background:#fce7f3">📄</div><span class="menu-text">协议</span></div>
+      <div class="menu-item" @click="switchTab('help')"><div class="menu-icon" style="background:#fef3c7">❓</div><span class="menu-text">帮助</span></div>
+    </div>
+  </div>
+
+  <!-- 最近交易 -->
+  <div class="section">
+    <div class="section-title">最近交易<span class="more" @click="switchTab('records')">查看全部 ></span></div>
+    <div class="order-item" v-for="item in recentTx" :key="item.id">
+      <div class="order-header">
+        <span class="order-merchant">{{item.merchant}}</span>
+        <span :class="'order-status '+item.statusClass">{{item.statusText}}</span>
+      </div>
+      <div class="order-time">{{item.time}}</div>
+      <div class="order-amount" :style="item.amount>0?'color:#10b981':'color:#ef4444'">{{item.amount>0?'+':'−'}}¥{{Math.abs(item.amount).toLocaleString()}}</div>
+    </div>
+    <div v-if="recentTx.length===0" style="padding:24px;text-align:center;color:#ccc;font-size:14px">暂无交易记录</div>
+  </div>
+
+  <!-- 底部 TabBar -->
+  <div class="tabbar">
+    <div class="tabbar-item active" @click="switchTab('home')"><span class="tabbar-icon">🏠</span><span>首页</span></div>
+    <div class="tabbar-item" @click="switchTab('merchant-list')"><span class="tabbar-icon">🏪</span><span>商户</span></div>
+    <div class="tabbar-item" @click="switchTab('records')"><span class="tabbar-icon">📝</span><span>记录</span></div>
+    <div class="tabbar-item" @click="switchTab('account')"><span class="tabbar-icon">👤</span><span>我的</span></div>
+  </div>
+</div>
+
+<!-- ===== 账户详情 ===== -->
+<div v-if="activeTab==='account'" class="page fade-in">
+  <div class="page-header">
+    <div class="back-btn" @click="switchTab('home')">&#8592;</div>
+    <div class="page-title-text">我的账户</div>
+  </div>
+  <div v-if="currentUser.status!=='active'" class="status-banner warning" style="margin:16px">
+    <div style="font-weight:600">{{statusText[currentUser.status]}}</div>
+    <div style="font-size:12px;margin-top:4px">{{statusDesc[currentUser.status]}}</div>
+  </div>
+  <div class="form-card">
+    <div class="form-group"><label class="form-label">账户 ID</label><div style="font-size:15px;color:#333;font-family:monospace">{{currentUser.id}}</div></div>
+    <div class="form-group"><label class="form-label">账户状态</label><div style="font-size:15px;color:#10b981;font-weight:600">{{statusText[currentUser.status]}}</div></div>
+    <div class="form-group"><label class="form-label">可用余额</label><div style="font-size:24px;color:#1a1a1a;font-weight:800">¥ {{currentUser.balance.toLocaleString()}}</div></div>
+    <div class="form-group" v-if="currentUser.frozenBalance>0"><label class="form-label">冻结金额</label><div style="font-size:16px;color:#f59e0b">¥ {{currentUser.frozenBalance.toLocaleString()}}</div></div>
+    <div class="form-group"><label class="form-label">开户时间</label><div style="font-size:15px;color:#888">{{currentUser.openTime}}</div></div>
+  </div>
+  <div style="margin:0 16px">
+    <van-button type="primary" size="large" round @click="switchTab('deposit')">💰 立即预存</van-button>
+  </div>
+  <div class="section" style="margin-top:16px">
+    <div class="section-title">关联商户 Ledger</div>
+    <div style="padding:12px 16px">
+      <div v-for="l in userLedgers" :key="l.id" style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f5f5f5">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#1a1a1a">{{l.merchant}}</div>
+          <div style="font-size:11px;color:#999;margin-top:2px">{{l.id}}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:700;color:#10b981">¥ {{l.balance.toLocaleString()}}</div>
+          <div style="font-size:11px;color:#888">{{l.statusText}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 预存页面 ===== -->
+<div v-if="activeTab==='deposit'" class="page fade-in">
+  <div class="page-header">
+    <div class="back-btn" @click="switchTab('home')">&#8592;</div>
+    <div class="page-title-text">资金预存</div>
+  </div>
+  <div class="form-card">
+    <div class="form-group"><label class="form-label">选择商户</label>
+      <select class="form-input" v-model="depositForm.merchantId">
+        <option value="">— 选择商户 —</option>
+        <option v-for="m in merchantList" :key="m.id" :value="m.id">{{m.name}}</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">预存金额 (¥)</label>
+      <input class="form-input" type="number" v-model="depositForm.amount" placeholder="请输入预存金额" min="1" step="0.01"/>
+    </div>
+    <div style="background:#f8f9ff;border-radius:10px;padding:12px;font-size:12px;color:#888;line-height:1.6">
+      💡 预存资金将存入您在商户的专属 Ledger 账户，可用于消费支付。
+    </div>
+    <div v-if="depositForm.amount>0" style="margin-top:16px;text-align:center">
+      <div style="font-size:13px;color:#888">实际到账</div>
+      <div style="font-size:32px;font-weight:800;color:#6366f1">¥ {{Number(depositForm.amount).toLocaleString()}}</div>
+    </div>
+  </div>
+  <div style="padding:0 16px">
+    <van-button type="primary" size="large" round :disabled="!depositForm.merchantId||!depositForm.amount" @click="doDeposit">确认预存</van-button>
+  </div>
+</div>
+
+<!-- ===== 交易记录 ===== -->
+<div v-if="activeTab==='records'" class="page fade-in">
+  <div class="page-header">
+    <div class="back-btn" @click="switchTab('home')">&#8592;</div>
+    <div class="page-title-text">交易记录</div>
+  </div>
+  <van-tabs v-model:active="recordTab" shrink style="margin-top:0">
+    <van-tab title="全部" name="all"/>
+    <van-tab title="预存" name="deposit"/>
+    <van-tab title="消费" name="withdraw"/>
+    <van-tab title="退款" name="refund"/>
+  </van-tabs>
+  <div style="padding-top:8px">
+    <div class="order-item" v-for="item in filteredRecords" :key="item.id" style="background:#fff;margin:0 16px 8px;border-radius:10px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+      <div class="order-header">
+        <span class="order-merchant">{{item.merchant}}</span>
+        <span :class="'order-status '+item.statusClass">{{item.statusText}}</span>
+      </div>
+      <div style="font-size:11px;color:#999;margin-top:2px">{{item.time}} · {{item.id}}</div>
+      <div class="order-amount" :style="item.amount>0?'color:#10b981':'color:#ef4444'">{{item.amount>0?'+':'−'}}¥{{Math.abs(item.amount).toLocaleString()}}</div>
+    </div>
+    <div v-if="filteredRecords.length===0" style="padding:40px;text-align:center;color:#ccc;font-size:14px">暂无相关记录</div>
+  </div>
+</div>
+
+<!-- ===== 商户列表 ===== -->
+<div v-if="activeTab==='merchant-list'" class="page fade-in">
+  <div class="page-header">
+    <div class="back-btn" @click="switchTab('home')">&#8592;</div>
+    <div class="page-title-text">商户列表</div>
+  </div>
+  <div style="padding:16px">
+    <input class="form-input" v-model="merchantSearch" placeholder="🔍 搜索商户名称" style="margin-bottom:12px"/>
+    <div class="merchant-card" v-for="m in filteredMerchants" :key="m.id" @click="showMerchantDetail(m)">
+      <div class="merchant-avatar">{{m.emoji}}</div>
+      <div class="merchant-info">
+        <div class="merchant-name">{{m.name}}</div>
+        <div class="merchant-industry">{{m.industry}} · {{m.ledgerCount}} 个消费者</div>
+        <div class="merchant-balance">账户余额 ¥{{m.balance.toLocaleString()}}</div>
+      </div>
+      <van-icon name="arrow" size="16" color="#ccc" style="align-self:center"/>
+    </div>
+    <div v-if="filteredMerchants.length===0" style="padding:40px;text-align:center;color:#ccc">暂无商户</div>
+  </div>
+</div>
+
+<!-- ===== 协议页面 ===== -->
+<div v-if="activeTab==='agreement'" class="page fade-in">
+  <div class="page-header">
+    <div class="back-btn" @click="switchTab('home')">&#8592;</div>
+    <div class="page-title-text">资金存管协议</div>
+  </div>
+  <div class="agreement-card">
+    <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center">资金存管服务协议</h3>
+    <p style="margin-bottom:12px"><strong>一、服务说明</strong></p>
+    <p style="margin-bottom:12px">资金预存服务是由平台提供的资金管理服务。消费者将资金预存至商户的专属 Ledger 账户，由平台进行资金存管，确保资金安全。</p>
+    <p style="margin-bottom:12px"><strong>二、资金管理</strong></p>
+    <p style="margin-bottom:12px">1. 预存资金将存入银行专用存管账户<br>2. 商户不得随意提取消费者预存款<br>3. 资金按实际消费金额逐笔扣减</p>
+    <p style="margin-bottom:12px"><strong>三、权利义务</strong></p>
+    <p style="margin-bottom:12px">1. 消费者有权随时查看账户余额和交易明细<br>2. 消费者可申请退还剩余预存资金（扣除已消费部分）<br>3. 商户须提供真实有效的服务，不得欺诈</p>
+    <p style="margin-bottom:12px"><strong>四、免责声明</strong></p>
+    <p>因不可抗力或系统故障导致的资金损失，平台将积极协调处理，但不承担赔偿责任。</p>
+  </div>
+</div>
+
+<!-- ===== 帮助页面 ===== -->
+<div v-if="activeTab==='help'" class="page fade-in">
+  <div class="page-header">
+    <div class="back-btn" @click="switchTab('home')">&#8592;</div>
+    <div class="page-title-text">帮助与客服</div>
+  </div>
+  <div class="section">
+    <div class="section-title">常见问题</div>
+    <div style="padding:0">
+      <div style="padding:14px 20px;border-bottom:1px solid #f5f5f5;font-size:14px;color:#333;cursor:pointer" @click="showFaq=!showFaq">
+        <span>如何进行资金预存？</span><van-icon name="arrow" size="14" style="float:right;margin-top:3px"/>
+      </div>
+      <div v-if="showFaq" style="padding:12px 20px;background:#f8f9ff;font-size:13px;color:#666;line-height:1.7">
+        在首页点击「预存」按钮，选择商户并输入金额即可完成预存。资金将实时到账。
+      </div>
+      <div style="padding:14px 20px;border-bottom:1px solid #f5f5f5;font-size:14px;color:#333">如何查看交易明细？</div>
+      <div style="padding:14px 20px;font-size:14px;color:#333">如何申请退款？</div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">联系客服</div>
+    <div style="padding:20px;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">📞</div>
+      <div style="font-size:15px;font-weight:600;color:#1a1a1a">客服热线</div>
+      <div style="font-size:18px;color:#6366f1;font-weight:700;margin-top:8px">400-888-8888</div>
+      <div style="font-size:12px;color:#999;margin-top:4px">工作日 9:00-18:00</div>
+    </div>
+  </div>
+</div>
+
+<!-- 底部安全提示 -->
+<div v-if="activeTab==='home'" style="text-align:center;padding:12px;font-size:11px;color:#ccc;padding-bottom:80px">
+  资金安全由银行存管保障 · 请勿向他人透露验证码
+</div>
+
+</div><!-- end app -->
+
+<script>
+const { createApp, ref, reactive, computed } = Vue;
+const app = createApp({
+  setup() {
+    const activeTab = ref('home');
+    const recordTab = ref('all');
+    const showFaq = ref(false);
+    const merchantSearch = ref('');
+
+    const currentUser = ref({
+      id: 'c-001', name: '张三', status: 'active',
+      balance: 1200, frozenBalance: 0,
+      openTime: '2026-01-15 11:00:00'
+    });
+
+    const statusText = { active: '账户正常', frozen: '账户已冻结', closed: '账户已关闭' };
+    const statusDesc = { active: '', frozen: '请联系客服解冻账户', closed: '账户已停用' };
+
+    const userLedgers = ref([
+      { id: 'ld-001', merchant: '美发会所 A', balance: 1200, statusText: '活跃' },
+      { id: 'ld-002', merchant: '美容中心 B', balance: 800, statusText: '活跃' },
+    ]);
+
+    const recentTx = ref([
+      { id: 't-001', merchant: '美发会所 A', amount: 500, time: '2026-03-26 10:23', statusText: '已完成', statusClass: 'success' },
+      { id: 't-002', merchant: '美容中心 B', amount: -80, time: '2026-03-26 09:45', statusText: '已完成', statusClass: 'success' },
+      { id: 't-003', merchant: '美发会所 A', amount: -120, time: '2026-03-25 16:30', statusText: '已完成', statusClass: 'success' },
+    ]);
+
+    const merchantList = ref([
+      { id: 'm-001', name: '美发会所 A', industry: '美发', emoji: '💇', ledgerCount: 5, balance: 125600 },
+      { id: 'm-002', name: '美容中心 B', industry: '美容', emoji: '💆', ledgerCount: 8, balance: 89000 },
+      { id: 'm-003', name: '餐饮连锁 C', industry: '餐饮', emoji: '🍜', ledgerCount: 12, balance: 234000 },
+    ]);
+
+    const allRecords = ref([
+      { id: 't-001', merchant: '美发会所 A', amount: 500, time: '2026-03-26 10:23', type: 'deposit', statusText: '已完成', statusClass: 'success' },
+      { id: 't-002', merchant: '美容中心 B', amount: -80, time: '2026-03-26 09:45', type: 'withdraw', statusText: '已完成', statusClass: 'success' },
+      { id: 't-003', merchant: '美发会所 A', amount: -120, time: '2026-03-25 16:30', type: 'withdraw', statusText: '已完成', statusClass: 'success' },
+      { id: 't-004', merchant: '美容中心 B', amount: 1000, time: '2026-03-25 14:00', type: 'deposit', statusText: '已完成', statusClass: 'success' },
+      { id: 't-005', merchant: '美发会所 A', amount: 50, time: '2026-03-24 18:00', type: 'refund', statusText: '已完成', statusClass: 'success' },
+    ]);
+
+    const depositForm = reactive({ merchantId: '', amount: '' });
+
+    const filteredMerchants = computed(() => {
+      const q = merchantSearch.value.toLowerCase();
+      return merchantList.value.filter(m => m.name.toLowerCase().includes(q) || m.industry.toLowerCase().includes(q));
+    });
+
+    const filteredRecords = computed(() => {
+      if (recordTab.value === 'all') return allRecords.value;
+      return allRecords.value.filter(r => r.type === recordTab.value);
+    });
+
+    function switchTab(tab) { activeTab.value = tab; window.scrollTo(0, 0); }
+    function showMerchantDetail(m) { vant.ShowToast('商户：' + m.name); }
+    function doDeposit() {
+      if (!depositForm.merchantId || !depositForm.amount) return;
+      vant.Dialog.confirm({ title: '确认预存', message: `向 ${merchantList.value.find(m=>m.id===depositForm.merchantId)?.name} 预存 ¥${depositForm.amount}？` })
+        .then(() => {
+          vant.ShowToast({ message: '预存成功！', forbidClick: true });
+          setTimeout(() => switchTab('home'), 1200);
+        }).catch(() => {});
+    }
+
+    return { activeTab, recordTab, showFaq, merchantSearch, currentUser, statusText, statusDesc, userLedgers, recentTx, merchantList, allRecords, depositForm, filteredMerchants, filteredRecords, switchTab, showMerchantDetail, doDeposit };
+  }
+});
+app.use(vant);
+app.mount('#app');
+</script>
+</body>
+</html>

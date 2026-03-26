@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>资金预存 - 管理后台</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@2.4.4/dist/index.css">
+<script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/element-plus@2.4.4/dist/index.full.min.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5}
+.layout{display:flex;height:100vh;position:relative}
+.sidebar-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:998;display:none;transition:opacity 0.3s}
+.sidebar-overlay.active{display:block}
+.sidebar{width:230px;background:#1a1a2e;border-right:1px solid #2d2d44;flex-shrink:0;display:flex;flex-direction:column;height:100vh;position:relative;z-index:1;transition:transform 0.3s ease}
+@media(max-width:768px){
+  .sidebar-overlay{position:fixed;top:0;left:0;bottom:0;width:230px;z-index:999}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:230px;transform:translateX(-100%);z-index:999}
+  .sidebar.mobile-open{transform:translateX(0)}
+}
+.logo{padding:20px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:800;flex-shrink:0}
+.logo-text{font-size:15px;font-weight:700;color:#fff;line-height:1.2}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.4);font-weight:400}
+.menu-wrap{flex:1;overflow-y:auto;padding:8px 0}
+.menu-section{padding:8px 16px 4px;font-size:10px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.menu-item{padding:10px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:14px;border-left:3px solid transparent;transition:all 0.2s;user-select:none}
+.menu-item:hover{background:rgba(255,255,255,0.06);color:#fff}
+.menu-item.active{background:rgba(99,102,241,0.15);color:#a78bfa;border-left-color:#a78bfa}
+.menu-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:#ef4444;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{background:#fff;border-bottom:1px solid #e6e8eb;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:14px;color:#666}
+.breadcrumb-sep{color:#ccc}
+.breadcrumb-current{color:#333;font-weight:600}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer}
+.notif-btn{font-size:20px;cursor:pointer;color:#666;position:relative;padding:4px}
+.notif-btn .notif-count{position:absolute;top:0;right:0;background:#ef4444;color:#fff;font-size:10px;padding:1px 4px;border-radius:10px;line-height:1.2}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.page{animation:fadeIn 0.25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.page-title{font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06);margin-bottom:16px}
+.card-header{padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:600;color:#1a1a1a}
+.card-body{padding:20px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:12px;padding:20px;display:flex;align-items:center;gap:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06);transition:box-shadow 0.2s}
+.stat-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+.stat-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.stat-info{flex:1;min-width:0}
+.stat-value{font-size:22px;font-weight:700;color:#1a1a1a;line-height:1.2;white-space:nowrap}
+.stat-label{font-size:13px;color:#888;margin-top:4px}
+.stat-change{font-size:12px;margin-top:2px}
+.stat-change.up{color:#10b981}
+.stat-change.down{color:#ef4444}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:12px;white-space:nowrap}
+.tag-success{background:#e8f5e9;color:#10b981}
+.tag-warning{background:#fff8e1;color:#f59e0b}
+.tag-danger{background:#ffebee;color:#ef4444}
+.tag-info{background:#e3f2fd;color:#1976D2}
+.tag-purple{background:#f3e5f5;color:#7b1fa2}
+.tag-default{background:#f5f5f5;color:#666}
+.money{color:#e6a23c;font-weight:600}
+.timeline-item{display:flex;gap:12px;padding-bottom:20px;position:relative}
+.timeline-dot{width:10px;height:10px;border-radius:50%;background:#6366f1;flex-shrink:0;margin-top:4px}
+.timeline-dot-gray{background:#ccc}
+.timeline-line{position:absolute;left:4px;top:14px;bottom:0;width:2px;background:#f0f0f0}
+.timeline-content{flex:1}
+.timeline-time{font-size:12px;color:#888}
+.timeline-title{font-size:14px;color:#333;margin-top:2px}
+.timeline-desc{font-size:12px;color:#888;margin-top:4px}
+.quick-action{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;background:#f8f9ff;border-radius:10px;cursor:pointer;transition:all 0.2s;border:1px solid transparent}
+.quick-action:hover{border-color:#a78bfa;background:#f0ebff;transform:translateY(-2px)}
+.quick-action-icon{font-size:28px}
+.quick-action-text{font-size:12px;color:#666;text-align:center}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.filter-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.icon-merchant{background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#7c3aed}
+.icon-consumer{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#2563eb}
+.icon-ledger{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#059669}
+.icon-txn{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#d97706}
+.icon-settle{background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#db2777}
+.hamburger{display:none;background:none;border:none;cursor:pointer;font-size:22px;padding:4px;line-height:1;color:#666}
+@media(max-width:768px){
+  .hamburger{display:block}
+  .stat-row{grid-template-columns:1fr 1fr}
+  .grid-2{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="sidebar-overlay" :class="{active:sidebarOpen}" @click="sidebarOpen=false"></div>
+<div class="layout">
+  <aside class="sidebar" :class="{'mobile-open':sidebarOpen}">
+    <div class="logo">
+      <div class="logo-icon">💰</div>
+      <div class="logo-text">资金预存<div class="logo-sub">管理后台</div></div>
+    </div>
+    <div class="menu-wrap">
+      <div class="menu-section">主菜单</div>
+      <div class="menu-item" :class="{active:page==='dashboard'}" @click="switchPage('dashboard')"><span class="menu-icon">📊</span><span>工作台</span></div>
+      <div class="menu-item" :class="{active:page==='merchants'}" @click="switchPage('merchants')"><span class="menu-icon">🏪</span><span>商户管理</span></div>
+      <div class="menu-item" :class="{active:page==='consumers'}" @click="switchPage('consumers')"><span class="menu-icon">👥</span><span>消费者管理</span></div>
+      <div class="menu-item" :class="{active:page==='ledgers'}" @click="switchPage('ledgers')"><span class="menu-icon">📒</span><span>Ledger 账簿</span></div>
+      <div class="menu-item" :class="{active:page==='transactions'}" @click="switchPage('transactions')"><span class="menu-icon">📝</span><span>交易流水</span></div>
+      <div class="menu-section">财务</div>
+      <div class="menu-item" :class="{active:page==='settlements'}" @click="switchPage('settlements')"><span class="menu-icon">⚖️</span><span>清分管理</span><span class="badge-dot" v-if="pendingSettle>0"></span></div>
+      <div class="menu-section">系统</div>
+      <div class="menu-item" :class="{active:page==='settings'}" @click="switchPage('settings')"><span class="menu-icon">⚙️</span><span>系统配置</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="hamburger" @click="sidebarOpen=!sidebarOpen">&#9776;</button>
+        <div class="breadcrumb"><span>首页</span><span class="breadcrumb-sep">/</span><span class="breadcrumb-current">{{pageTitles[page]}}</span></div>
+      </div>
+      <div class="topbar-right">
+        <div class="notif-btn">&#128276;<span class="notif-count" v-if="pendingNotif>0">{{pendingNotif}}</span></div>
+        <div class="avatar">管</div>
+        <span style="font-size:13px;color:#666;font-weight:500">超级管理员</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <!-- ===== 工作台 ===== -->
+      <div v-if="page==='dashboard'" class="page">
+        <div class="page-title">工作台</div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-icon icon-merchant">🏪</div><div class="stat-info"><div class="stat-value">{{stats.merchants}}</div><div class="stat-label">商户总数</div><div class="stat-change up">▲ 本月新增 {{stats.merchantsNew}} 家</div></div></div>
+          <div class="stat-card"><div class="stat-icon icon-consumer">👥</div><div class="stat-info"><div class="stat-value">{{stats.consumers}}</div><div class="stat-label">活跃消费者</div><div class="stat-change up">▲ 本月新增 {{stats.consumersNew}} 人</div></div></div>
+          <div class="stat-card"><div class="stat-icon icon-ledger">📒</div><div class="stat-info"><div class="stat-value">{{stats.ledgers}}</div><div class="stat-label">Ledger 账簿</div><div class="stat-change" :class="stats.ledgersFrozen>0?'down':'up'">🔒 {{stats.ledgersFrozen}} 个已冻结</div></div></div>
+          <div class="stat-card"><div class="stat-icon icon-txn">💸</div><div class="stat-info"><div class="stat-value money">¥{{(stats.todayAmount/10000).toFixed(1)}}万</div><div class="stat-label">今日交易额</div><div class="stat-change up">▲ 较昨日 +{{stats.yesterdayCompare}}%</div></div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span>待处理事项</span><span class="tag tag-danger" v-if="todoList.length>0">{{todoList.length}} 项</span></div>
+            <div class="card-body">
+              <div v-if="todoList.length===0" style="text-align:center;color:#999;padding:20px;font-size:14px">🎉 暂无待处理事项</div>
+              <div v-for="(item,i) in todoList" :key="i" class="timeline-item">
+                <div><div class="timeline-dot" :class="{'timeline-dot-gray':item.done}"></div><div class="timeline-line" v-if="i<todoList.length-1"></div></div>
+                <div class="timeline-content">
+                  <div class="timeline-time">{{item.time}}</div>
+                  <div class="timeline-title">{{item.title}}</div>
+                  <div class="timeline-desc" v-if="item.amount">金额：<span class="money">¥ {{item.amount.toLocaleString()}}</span></div>
+                  <el-button v-if="item.action" type="primary" size="small" style="margin-top:8px" @click="handleTodoAction(item)">{{item.action}}</el-button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>快捷操作</span></div>
+            <div class="card-body">
+              <div class="grid-4">
+                <div class="quick-action" @click="switchPage('merchants')"><div class="quick-action-icon">🏪</div><div class="quick-action-text">商户入驻</div></div>
+                <div class="quick-action" @click="switchPage('consumers')"><div class="quick-action-icon">👤</div><div class="quick-action-text">消费者开户</div></div>
+                <div class="quick-action" @click="switchPage('transactions')"><div class="quick-action-icon">💰</div><div class="quick-action-text">预存操作</div></div>
+                <div class="quick-action" @click="switchPage('settlements')"><div class="quick-action-icon">⚖️</div><div class="quick-action-text">发起清分</div></div>
+              </div>
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0">
+                <div style="font-size:13px;color:#666;margin-bottom:8px;font-weight:600">平台健康度</div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <el-progress :percentage="98" :stroke-width="8" color="#10b981" style="flex:1"/>
+                  <span style="font-size:12px;color:#10b981;font-weight:600">优秀</span>
+                </div>
+                <div style="display:flex;gap:16px;margin-top:12px;font-size:12px;color:#888">
+                  <span>✅ API 正常</span>
+                  <span>✅ 数据库连接</span>
+                  <span>✅ 定时任务</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span>最近交易</span><el-button type="primary" size="small" @click="switchPage('transactions')">查看全部</el-button></div>
+          <div class="card-body" style="padding:0">
+            <el-table :data="recentTransactions" stripe style="width:100%">
+              <el-table-column prop="created_at" label="时间" width="170"/>
+              <el-table-column prop="id" label="流水号" width="160"><template #default="{row}"><code style="font-size:12px">{{row.id||row.tid}}</code></template></el-table-column>
+              <el-table-column prop="merchant_name" label="商户" min-width="140"/>
+              <el-table-column prop="consumer_name" label="消费者" min-width="120"/>
+              <el-table-column prop="type" label="类型" width="90"><template #default="{row}"><span :class="'tag '+typeTagClass(row.type)">{{typeLabel(row.type)}}</span></template></el-table-column>
+              <el-table-column prop="amount" label="金额" width="130" align="right"><template #default="{row}"><span :style="row.type==='deposit'||row.type==='refund'?'color:#10b981':'color:#ef4444';font-weight:700">{{row.type==='deposit'||row.type==='refund'?'+':'−'}}¥{{Math.abs(row.amount||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="status" label="状态" width="100"><template #default="{row}"><span :class="'tag '+statusTagClass(row.status)">{{statusLabel(row.status)}}</span></template></el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 商户管理 ===== -->
+      <div v-if="page==='merchants'" class="page">
+        <div class="page-title">商户管理<span style="font-size:13px;font-weight:400;color:#888;margin-left:8px">— 入驻审核与账户管理</span></div>
+        <div class="card">
+          <div class="card-header">
+            <span>商户列表</span>
+            <el-button type="primary" size="small" @click="ElMessage.info('新增商户功能演示')">➕ 新增商户</el-button>
+          </div>
+          <div class="card-body">
+            <div class="filter-row">
+              <el-select v-model="merchantFilter.status" placeholder="商户状态" style="width:130px" clearable>
+                <el-option label="全部状态" value=""/>
+                <el-option label="待审核" value="pending"/>
+                <el-option label="已入驻" value="active"/>
+                <el-option label="已停用" value="suspended"/>
+              </el-select>
+              <el-input v-model="merchantFilter.keyword" placeholder="搜索商户名称/ID" style="width:220px" clearable/>
+              <el-button type="primary" @click="loadMerchants">查询</el-button>
+              <el-button @click="merchantFilter={status:'',keyword:''}">重置</el-button>
+            </div>
+            <el-table :data="merchantList" border stripe v-loading="loading">
+              <el-table-column prop="id" label="商户ID" width="150"><template #default="{row}"><code style="font-size:12px">{{row.id}}</code></template></el-table-column>
+              <el-table-column prop="name" label="商户名称" min-width="150"/>
+              <el-table-column prop="industry" label="行业" width="100"><template #default="{row}"><span :class="'tag '+industryTag(row.industry)">{{industryLabel(row.industry)}}</span></template></el-table-column>
+              <el-table-column prop="ledgerCount" label="Ledger数" width="90" align="center"/>
+              <el-table-column prop="balance" label="账户余额" width="130" align="right"><template #default="{row}"><span class="money">¥ {{(row.balance||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="status" label="状态" width="100"><template #default="{row}"><span :class="'tag '+statusTagClass(row.status)">{{statusLabel(row.status)}}</span></template></el-table-column>
+              <el-table-column prop="created_at" label="入驻时间" width="170"/>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{row}">
+                  <el-button type="primary" size="small" text @click="showMerchantDetail(row)">详情</el-button>
+                  <el-button v-if="row.status==='active'" type="danger" size="small" text @click="ElMessage.warning('演示模式：停用功能')">停用</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination style="margin-top:16px;justify-content:flex-end" :page-size="20" :total="merchantTotal" v-model:current-page="merchantPage" layout="total, prev, pager, next"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 消费者管理 ===== -->
+      <div v-if="page==='consumers'" class="page">
+        <div class="page-title">消费者管理<span style="font-size:13px;font-weight:400;color:#888;margin-left:8px">— 账户开户与信息维护</span></div>
+        <div class="card">
+          <div class="card-header"><span>消费者列表</span></div>
+          <div class="card-body">
+            <div class="filter-row">
+              <el-select v-model="consumerFilter.status" placeholder="账户状态" style="width:130px" clearable>
+                <el-option label="全部状态" value=""/>
+                <el-option label="活跃" value="active"/>
+                <el-option label="已冻结" value="frozen"/>
+              </el-select>
+              <el-input v-model="consumerFilter.keyword" placeholder="搜索消费者ID/姓名/手机号" style="width:240px" clearable/>
+              <el-button type="primary" @click="loadConsumers">查询</el-button>
+              <el-button @click="consumerFilter={status:'',keyword:''}">重置</el-button>
+            </div>
+            <el-table :data="consumerList" border stripe v-loading="loading">
+              <el-table-column prop="id" label="消费者ID" width="150"><template #default="{row}"><code style="font-size:12px">{{row.id}}</code></template></el-table-column>
+              <el-table-column prop="name" label="姓名" width="100"/>
+              <el-table-column prop="phone" label="手机号" width="130"/>
+              <el-table-column prop="ledgerCount" label="Ledger数" width="90" align="center"/>
+              <el-table-column prop="totalBalance" label="总余额" width="130" align="right"><template #default="{row}"><span class="money">¥ {{(row.totalBalance||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="status" label="状态" width="100"><template #default="{row}"><span :class="'tag '+statusTagClass(row.status)">{{statusLabel(row.status)}}</span></template></el-table-column>
+              <el-table-column prop="created_at" label="开户时间" width="170"/>
+              <el-table-column label="操作" width="100" fixed="right">
+                <template #default="{row}"><el-button type="primary" size="small" text @click="ElMessage.info('详情：'+row.id)">详情</el-button></template>
+              </el-table-column>
+            </el-table>
+            <el-pagination style="margin-top:16px;justify-content:flex-end" :page-size="20" :total="consumerTotal" v-model:current-page="consumerPage" layout="total, prev, pager, next"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Ledger 账簿 ===== -->
+      <div v-if="page==='ledgers'" class="page">
+        <div class="page-title">Ledger 账簿<span style="font-size:13px;font-weight:400;color:#888;margin-left:8px">— 消费者预存资金账本</span></div>
+        <div class="card">
+          <div class="card-header"><span>账簿列表</span></div>
+          <div class="card-body">
+            <div class="filter-row">
+              <el-select v-model="ledgerFilter.status" placeholder="账簿状态" style="width:130px" clearable>
+                <el-option label="全部状态" value=""/>
+                <el-option label="活跃" value="active"/>
+                <el-option label="已冻结" value="frozen"/>
+                <el-option label="已关闭" value="closed"/>
+              </el-select>
+              <el-input v-model="ledgerFilter.merchantId" placeholder="商户ID" style="width:160px" clearable/>
+              <el-input v-model="ledgerFilter.ledgerId" placeholder="Ledger ID" style="width:160px" clearable/>
+              <el-button type="primary" @click="loadLedgers">查询</el-button>
+              <el-button @click="ledgerFilter={status:'',merchantId:'',ledgerId:''}">重置</el-button>
+            </div>
+            <el-table :data="ledgerList" border stripe v-loading="loading">
+              <el-table-column prop="id" label="Ledger ID" width="150"><template #default="{row}"><code style="font-size:12px">{{row.id||row.ledgerId}}</code></template></el-table-column>
+              <el-table-column prop="merchant_name" label="商户" min-width="140"/>
+              <el-table-column prop="consumer_name" label="消费者" min-width="120"/>
+              <el-table-column prop="balance" label="当前余额" width="130" align="right"><template #default="{row}"><span style="font-weight:700;color:#10b981;font-size:15px">¥ {{(row.balance||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="total_deposited" label="累计预存" width="120" align="right"><template #default="{row}"><span class="money">¥ {{(row.total_deposited||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="total_spent" label="累计消费" width="120" align="right"><template #default="{row}"><span style="color:#ef4444">¥ {{(row.total_spent||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="status" label="状态" width="90"><template #default="{row}"><span :class="'tag '+statusTagClass(row.status)">{{statusLabel(row.status)}}</span></template></el-table-column>
+              <el-table-column prop="updated_at" label="更新时间" width="170"/>
+            </el-table>
+            <el-pagination style="margin-top:16px;justify-content:flex-end" :page-size="20" :total="ledgerTotal" v-model:current-page="ledgerPage" layout="total, prev, pager, next"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 交易流水 ===== -->
+      <div v-if="page==='transactions'" class="page">
+        <div class="page-title">交易流水<span style="font-size:13px;font-weight:400;color:#888;margin-left:8px">— 预存/消费/退款记录</span></div>
+        <div class="card">
+          <div class="card-header">
+            <span>交易记录</span>
+            <el-button type="primary" size="small" @click="ElMessage.info('预存操作演示')">➕ 预存操作</el-button>
+          </div>
+          <div class="card-body">
+            <div class="filter-row">
+              <el-select v-model="txFilter.type" placeholder="交易类型" style="width:120px" clearable>
+                <el-option label="全部类型" value=""/>
+                <el-option label="预存" value="deposit"/>
+                <el-option label="消费" value="withdraw"/>
+                <el-option label="退款" value="refund"/>
+              </el-select>
+              <el-select v-model="txFilter.status" placeholder="交易状态" style="width:120px" clearable>
+                <el-option label="全部状态" value=""/>
+                <el-option label="已完成" value="completed"/>
+                <el-option label="待处理" value="pending"/>
+                <el-option label="失败" value="failed"/>
+              </el-select>
+              <el-button type="primary" @click="loadTransactions">查询</el-button>
+              <el-button @click="txFilter={type:'',status:''}">重置</el-button>
+            </div>
+            <el-table :data="transactionList" border stripe v-loading="loading">
+              <el-table-column prop="created_at" label="时间" width="170"/>
+              <el-table-column prop="id" label="流水号" width="160"><template #default="{row}"><code style="font-size:12px">{{row.id||row.tid}}</code></template></el-table-column>
+              <el-table-column prop="merchant_name" label="商户" min-width="140"/>
+              <el-table-column prop="consumer_name" label="消费者" min-width="120"/>
+              <el-table-column prop="type" label="类型" width="90"><template #default="{row}"><span :class="'tag '+typeTagClass(row.type)">{{typeLabel(row.type)}}</span></template></el-table-column>
+              <el-table-column prop="amount" label="金额" width="130" align="right"><template #default="{row}"><span style="font-weight:700;font-size:15px" :style="row.type==='deposit'||row.type==='refund'?'color:#10b981':'color:#ef4444'">{{row.type==='deposit'||row.type==='refund'?'+':'−'}}¥{{Math.abs(row.amount||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="balance_after" label="余额" width="120" align="right"><template #default="{row}"><span class="money">¥ {{(row.balance_after||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="status" label="状态" width="100"><template #default="{row}"><span :class="'tag '+statusTagClass(row.status)">{{statusLabel(row.status)}}</span></template></el-table-column>
+              <el-table-column prop="description" label="描述" min-width="140" show-overflow-tooltip/>
+            </el-table>
+            <el-pagination style="margin-top:16px;justify-content:flex-end" :page-size="20" :total="transactionTotal" v-model:current-page="transactionPage" layout="total, prev, pager, next"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 清分管理 ===== -->
+      <div v-if="page==='settlements'" class="page">
+        <div class="page-title">清分管理<span style="font-size:13px;font-weight:400;color:#888;margin-left:8px">— 资金清结算操作</span></div>
+        <div class="card">
+          <div class="card-header">
+            <span>清分记录</span>
+            <el-button type="primary" size="small" @click="ElMessage.info('发起清分功能演示')">➕ 发起清分</el-button>
+          </div>
+          <div class="card-body">
+            <el-table :data="settlementList" border stripe v-loading="loading">
+              <el-table-column prop="id" label="清分单号" width="160"><template #default="{row}"><code style="font-size:12px">{{row.id}}</code></template></el-table-column>
+              <el-table-column prop="merchant_name" label="商户" min-width="140"/>
+              <el-table-column prop="period" label="清分周期" width="120"/>
+              <el-table-column prop="total_amount" label="清分金额" width="130" align="right"><template #default="{row}"><span class="money">¥ {{(row.total_amount||0).toLocaleString()}}</span></template></el-table-column>
+              <el-table-column prop="status" label="状态" width="100"><template #default="{row}"><span :class="'tag '+statusTagClass(row.status)">{{statusLabel(row.status)}}</span></template></el-table-column>
+              <el-table-column prop="created_at" label="创建时间" width="170"/>
+              <el-table-column label="操作" width="140" fixed="right">
+                <template #default="{row}">
+                  <el-button type="primary" size="small" text @click="ElMessage.info('查看清分明细：'+row.id)">详情</el-button>
+                  <el-button v-if="row.status==='pending'" type="success" size="small" text @click="ElMessage.success('清分完成（演示）')">确认</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 系统配置 ===== -->
+      <div v-if="page==='settings'" class="page">
+        <div class="page-title">系统配置<span style="font-size:13px;font-weight:400;color:#888;margin-left:8px">— 费率规则与参数设置</span></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span>费率配置</span></div>
+            <div class="card-body">
+              <div style="margin-bottom:16px"><div style="font-size:13px;color:#666;margin-bottom:6px">预存手续费率</div><el-input-number :model-value="3.5" :precision="2" :step="0.1" :min="0" :max="10"/><span style="margin-left:8px;color:#888;font-size:13px">%</span></div>
+              <div style="margin-bottom:16px"><div style="font-size:13px;color:#666;margin-bottom:6px">清分服务费率</div><el-input-number :model-value="2.0" :precision="2" :step="0.1" :min="0" :max="5"/><span style="margin-left:8px;color:#888;font-size:13px">%</span></div>
+              <div style="margin-bottom:16px"><div style="font-size:13px;color:#666;margin-bottom:6px">最低预存金额</div><el-input-number :model-value="100" :step="10" :min="0"/><span style="margin-left:8px;color:#888;font-size:13px">元</span></div>
+              <el-button type="primary" size="small" @click="ElMessage.success('配置已保存（演示）')">保存配置</el-button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>系统信息</span></div>
+            <div class="card-body">
+              <div style="font-size:13px;color:#888;line-height:2">
+                <div>系统版本：<span style="color:#333">v1.0.0</span></div>
+                <div>数据库：<span style="color:#333">SQLite 3</span></div>
+                <div>API 状态：<span style="color:#10b981">✅ 正常运行</span></div>
+                <div>部署环境：<span style="color:#333">GitHub Pages + Railway</span></div>
+                <div>最后更新：<span style="color:#333">2026-03-26</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content -->
+  </div><!-- end main -->
+</div><!-- end layout -->
+</div><!-- end app -->
+
+<script>
+const { createApp, ref, reactive, computed } = Vue;
+const app = createApp({
+  setup() {
+    const page = ref('dashboard');
+    const sidebarOpen = ref(false);
+    const loading = ref(false);
+    const pendingNotif = ref(0);
+    const pendingSettle = ref(0);
+
+    const pageTitles = {
+      dashboard: '工作台', merchants: '商户管理', consumers: '消费者管理',
+      ledgers: 'Ledger 账簿', transactions: '交易流水', settlements: '清分管理', settings: '系统配置'
+    };
+
+    const stats = ref({ merchants: 3, merchantsNew: 1, consumers: 28, consumersNew: 5, ledgers: 12, ledgersFrozen: 1, todayAmount: 125600, yesterdayCompare: 12 });
+
+    const todoList = ref([
+      { time: '2026-03-26 09:00', title: '商户 A 提交入驻申请', action: '审核', done: false },
+      { time: '2026-03-26 10:30', title: 'Ledger ld-003 申请解冻', amount: 450, action: '处理', done: false },
+      { time: '2026-03-25 14:00', title: '商户 B 清分对账异常', amount: 1200, action: null, done: true },
+    ]);
+
+    const recentTransactions = ref([
+      { id: 't-2026032601', created_at: '2026-03-26 10:23:15', merchant_name: '商户A', consumer_name: '张三', type: 'deposit', amount: 500, status: 'completed' },
+      { id: 't-2026032602', created_at: '2026-03-26 09:45:30', merchant_name: '商户A', consumer_name: '李四', type: 'withdraw', amount: -80, status: 'completed' },
+      { id: 't-2026032603', created_at: '2026-03-26 09:12:08', merchant_name: '商户B', consumer_name: '王五', type: 'deposit', amount: 1000, status: 'completed' },
+      { id: 't-2026032604', created_at: '2026-03-25 18:30:00', merchant_name: '商户A', consumer_name: '张三', type: 'refund', amount: 50, status: 'completed' },
+      { id: 't-2026032605', created_at: '2026-03-25 16:20:44', merchant_name: '商户B', consumer_name: '赵六', type: 'withdraw', amount: -200, status: 'failed' },
+    ]);
+
+    const merchantFilter = reactive({ status: '', industry: '', keyword: '' });
+    const merchantList = ref([
+      { id: 'm-001', name: '美发会所 A', industry: 'hair', ledgerCount: 5, balance: 125600, status: 'active', created_at: '2026-01-15 10:30:00' },
+      { id: 'm-002', name: '美容中心 B', industry: 'beauty', ledgerCount: 8, balance: 89000, status: 'active', created_at: '2026-01-20 14:22:00' },
+      { id: 'm-003', name: '餐饮连锁 C', industry: 'food', ledgerCount: 12, balance: 234000, status: 'active', created_at: '2026-02-01 09:00:00' },
+      { id: 'm-004', name: '新商户 D', industry: 'beauty', ledgerCount: 0, balance: 0, status: 'pending', created_at: '2026-03-26 08:00:00' },
+    ]);
+    const merchantTotal = ref(4);
+    const merchantPage = ref(1);
+
+    const consumerFilter = reactive({ status: '', keyword: '' });
+    const consumerList = ref([
+      { id: 'c-001', name: '张三', phone: '138****1234', ledgerCount: 2, totalBalance: 1200, status: 'active', created_at: '2026-01-15 11:00:00' },
+      { id: 'c-002', name: '李四', phone: '139****5678', ledgerCount: 1, totalBalance: 800, status: 'active', created_at: '2026-01-20 15:30:00' },
+      { id: 'c-003', name: '王五', phone: '136****9012', ledgerCount: 1, totalBalance: 450, status: 'frozen', created_at: '2026-02-05 10:00:00' },
+    ]);
+    const consumerTotal = ref(3);
+    const consumerPage = ref(1);
+
+    const ledgerFilter = reactive({ status: '', merchantId: '', ledgerId: '' });
+    const ledgerList = ref([
+      { id: 'ld-001', merchant_name: '美发会所 A', consumer_name: '张三', balance: 1200, total_deposited: 2000, total_spent: 800, status: 'active', updated_at: '2026-03-26 10:23:15' },
+      { id: 'ld-002', merchant_name: '美发会所 A', consumer_name: '李四', balance: 800, total_deposited: 1000, total_spent: 200, status: 'active', updated_at: '2026-03-26 09:45:30' },
+      { id: 'ld-003', merchant_name: '美容中心 B', consumer_name: '王五', balance: 450, total_deposited: 1000, total_spent: 550, status: 'frozen', updated_at: '2026-03-25 18:00:00' },
+    ]);
+    const ledgerTotal = ref(3);
+    const ledgerPage = ref(1);
+
+    const txFilter = reactive({ type: '', status: '', dateRange: '' });
+    const transactionList = ref([
+      { id: 't-2026032601', created_at: '2026-03-26 10:23:15', merchant_name: '美发会所 A', consumer_name: '张三', type: 'deposit', amount: 500, balance_after: 1200, status: 'completed', description: '首次充值优惠' },
+      { id: 't-2026032602', created_at: '2026-03-26 09:45:30', merchant_name: '美发会所 A', consumer_name: '李四', type: 'withdraw', amount: 80, balance_after: 920, status: 'completed', description: '美发服务' },
+      { id: 't-2026032603', created_at: '2026-03-26 09:12:08', merchant_name: '美容中心 B', consumer_name: '王五', type: 'deposit', amount: 1000, balance_after: 450, status: 'completed', description: '' },
+      { id: 't-2026032604', created_at: '2026-03-25 18:30:00', merchant_name: '美发会所 A', consumer_name: '张三', type: 'refund', amount: 50, balance_after: 700, status: 'completed', description: '退款' },
+      { id: 't-2026032605', created_at: '2026-03-25 16:20:44', merchant_name: '美容中心 B', consumer_name: '赵六', type: 'withdraw', amount: 200, balance_after: 800, status: 'failed', description: '余额不足' },
+    ]);
+    const transactionTotal = ref(5);
+    const transactionPage = ref(1);
+
+    const settlementList = ref([
+      { id: 'st-001', merchant_name: '美发会所 A', period: '2026-W12', total_amount: 25600, status: 'completed', created_at: '2026-03-23 00:00:00' },
+      { id: 'st-002', merchant_name: '美容中心 B', period: '2026-W12', total_amount: 18900, status: 'pending', created_at: '2026-03-25 00:00:00' },
+    ]);
+
+    function switchPage(p) { page.value = p; sidebarOpen.value = false; }
+    function showMerchantDetail(row) { ElMessage.info('商户详情：' + row.name); }
+    function loadMerchants() { loading.value=true; setTimeout(()=>loading.value=false, 500); }
+    function loadConsumers() { loading.value=true; setTimeout(()=>loading.value=false, 500); }
+    function loadLedgers() { loading.value=true; setTimeout(()=>loading.value=false, 500); }
+    function loadTransactions() { loading.value=true; setTimeout(()=>loading.value=false, 500); }
+    function handleTodoAction(item) { ElMessage.success('已处理：' + item.title); item.done=true; }
+
+    function statusTagClass(s) {
+      const m = { active: 'tag-success', pending: 'tag-warning', completed: 'tag-success', failed: 'tag-danger', suspended: 'tag-danger', frozen: 'tag-warning', closed: 'tag-default' };
+      return m[s] || 'tag-default';
+    }
+    function statusLabel(s) {
+      const m = { active: '活跃', pending: '待审核', completed: '已完成', failed: '失败', suspended: '已停用', frozen: '已冻结', closed: '已关闭' };
+      return m[s] || s;
+    }
+    function typeTagClass(t) {
+      const m = { deposit: 'tag-success', withdraw: 'tag-danger', refund: 'tag-info' };
+      return m[t] || 'tag-default';
+    }
+    function typeLabel(t) {
+      const m = { deposit: '预存', withdraw: '消费', refund: '退款' };
+      return m[t] || t;
+    }
+    function industryTag(i) {
+      const m = { hair: 'tag-purple', beauty: 'tag-info', food: 'tag-warning' };
+      return m[i] || 'tag-default';
+    }
+    function industryLabel(i) {
+      const m = { hair: '美发', beauty: '美容', food: '餐饮' };
+      return m[i] || i;
+    }
+
+    return { page, sidebarOpen, loading, pendingNotif, pendingSettle, pageTitles, stats, todoList, recentTransactions, merchantFilter, merchantList, merchantTotal, merchantPage, consumerFilter, consumerList, consumerTotal, consumerPage, ledgerFilter, ledgerList, ledgerTotal, ledgerPage, txFilter, transactionList, transactionTotal, transactionPage, settlementList, switchPage, showMerchantDetail, loadMerchants, loadConsumers, loadLedgers, loadTransactions, handleTodoAction, statusTagClass, statusLabel, typeTagClass, typeLabel, industryTag, industryLabel };
+  }
+});
+app.use(ElementPlus);
+app.mount('#app');
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>收银台</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+  <style>
+    .checkout-summary {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    .checkout-merchant {
+      font-size: 14px; font-weight: 500; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+    }
+    .checkout-service { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .checkout-amount {
+      font-size: 28px; font-weight: 700; color: var(--orange);
+      text-align: right; margin-top: 8px;
+    }
+    .method-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .method-item:last-child { border-bottom: none; }
+    .method-icon { font-size: 24px; }
+    .method-info { flex: 1; }
+    .method-name { font-size: 15px; font-weight: 500; }
+    .method-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .method-check { font-size: 18px; color: var(--primary); }
+    .agreement-row {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 12px; color: var(--text-muted); line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()"><span>‹</span></div>
+      <div class="navbar-title"><div>收银台</div></div>
+      <div class="navbar-right"></div>
+    </div>
+
+    <div class="page-content">
+      <!-- 商户 + 服务信息 -->
+      <div class="checkout-summary" id="summaryBox">
+        <div class="checkout-merchant">
+          <span id="merchantName">加载中...</span>
+        </div>
+        <div class="checkout-service" id="serviceName">请选择服务</div>
+        <div class="checkout-amount" id="servicePrice">¥0.00</div>
+      </div>
+
+      <!-- 记账簿抵扣 -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <h3>💳 账户支付</h3>
+        </div>
+        <div class="card-body" style="padding:0 16px">
+          <div id="ledgerPayOption">
+            <!-- JS -->
+          </div>
+          <div id="noLedgerTip" style="display:none;padding:16px 0;font-size:13px;color:var(--text-muted)">
+            暂无记账簿，需预存后使用
+          </div>
+        </div>
+      </div>
+
+      <!-- 支付方式 -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-header">
+          <h3>其他支付方式</h3>
+        </div>
+        <div class="card-body" style="padding:0 16px">
+          <div class="method-item" onclick="selectPayMethod('wechat')">
+            <div class="method-icon">💚</div>
+            <div class="method-info">
+              <div class="method-name">微信支付</div>
+              <div class="method-desc">推荐</div>
+            </div>
+            <div class="method-check" id="check-wechat">○</div>
+          </div>
+          <div class="method-item" onclick="selectPayMethod('alipay')">
+            <div class="method-icon">💙</div>
+            <div class="method-info">
+              <div class="method-name">支付宝</div>
+              <div class="method-desc"></div>
+            </div>
+            <div class="method-check" id="check-alipay">○</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 同意协议 -->
+      <div class="agreement-row" style="margin-bottom:16px">
+        <input type="checkbox" id="agreeProtocol" style="width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--primary)">
+        <label for="agreeProtocol" style="font-size:12px;color:var(--text-muted)">
+          我已阅读并同意
+          <a href="../agreement/index.html" style="color:var(--primary)">《资金预存服务协议》</a>
+        </label>
+      </div>
+
+      <!-- 提交 -->
+      <button class="btn btn-primary btn-lg" id="payBtn" onclick="submitPay()">
+        确认支付 <span id="payBtnAmount"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 支付成功 -->
+  <div id="successModal" class="popover hidden">
+    <div class="popover-sheet" style="text-align:center;padding:40px 20px">
+      <div style="font-size:64px;margin-bottom:16px">✅</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px">支付成功！</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:24px" id="successAmount"></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary" onclick="goOrders()">查看订单</button>
+        <button class="btn btn-secondary" onclick="goHome()">返回首页</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 余额不足提示 -->
+  <div id="balanceModal" class="popover hidden">
+    <div class="popover-sheet" style="text-align:center;padding:40px 20px">
+      <div style="font-size:64px;margin-bottom:16px">⚠️</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:8px">余额不足</div>
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:24px" id="balanceTip"></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary" onclick="goDeposit()">去预存</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('balanceModal').classList.add('hidden')">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const App = MobileApp;
+    const merchantId = App.getQuery('merchant') || '';
+    const serviceId = App.getQuery('service') || '';
+    const merchant = App.getMerchant(merchantId);
+    const service = App.getServicesByMerchant(merchantId).find(s => s.id === serviceId);
+    const ledger = App.getLedgerByMerchant(merchantId);
+    let selectedMethod = ledger ? 'ledger' : 'wechat';
+
+    document.getElementById('merchantName').textContent = merchant?.name || '';
+    document.getElementById('serviceName').textContent = service?.name || '选择服务';
+    document.getElementById('servicePrice').textContent = service ? App.formatMoney(service.price) : '¥0.00';
+    document.getElementById('payBtnAmount').textContent = service ? ' ' + App.formatMoney(service.price) : '';
+
+    function renderLedgerOption() {
+      const el = document.getElementById('ledgerPayOption');
+      const noLedger = document.getElementById('noLedgerTip');
+      if (!ledger) {
+        el.style.display = 'none';
+        noLedger.style.display = 'block';
+        return;
+      }
+      el.style.display = 'block';
+      noLedger.style.display = 'none';
+      el.innerHTML = `
+        <div class="method-item" onclick="selectPayMethod('ledger')" id="ledgerMethod">
+          <div class="method-icon">📒</div>
+          <div class="method-info">
+            <div class="method-name">记账簿余额支付</div>
+            <div class="method-desc">可用余额：${App.formatMoney(ledger.balance)}</div>
+          </div>
+          <div class="method-check" id="check-ledger">✓</div>
+        </div>
+      `;
+      updateCheckUI();
+    }
+
+    function selectPayMethod(method) {
+      if (method === 'ledger' && !ledger) return;
+      selectedMethod = method;
+      updateCheckUI();
+    }
+
+    function updateCheckUI() {
+      ['wechat', 'alipay', 'ledger'].forEach(m => {
+        const el = document.getElementById('check-' + m);
+        if (el) el.textContent = m === selectedMethod ? '✓' : '○';
+      });
+    }
+
+    async function submitPay() {
+      if (!service) return App.showToast('请先选择服务');
+      if (!document.getElementById('agreeProtocol').checked) return App.showToast('请先阅读并同意协议');
+      const amount = service.price;
+      const btn = document.getElementById('payBtn');
+      btn.disabled = true;
+      btn.textContent = '支付中...';
+
+      await new Promise(r => setTimeout(r, 1500));
+
+      if (selectedMethod === 'ledger') {
+        if (ledger.balance < amount) {
+          btn.disabled = false;
+          btn.textContent = '确认支付 ' + App.formatMoney(amount);
+          document.getElementById('balanceTip').textContent = `当前余额 ${App.formatMoney(ledger.balance)}，差 ${App.formatMoney(amount - ledger.balance)}`;
+          document.getElementById('balanceModal').classList.remove('hidden');
+          return;
+        }
+        await App.doWithdraw(ledger.id, amount, service.name);
+        document.getElementById('successAmount').textContent = App.formatMoney(amount);
+        document.getElementById('successModal').classList.remove('hidden');
+      } else {
+        // 模拟微信/支付宝支付
+        App.showToast('唤起' + (selectedMethod === 'wechat' ? '微信' : '支付宝') + '支付...');
+        await new Promise(r => setTimeout(r, 1000));
+        document.getElementById('successAmount').textContent = App.formatMoney(amount);
+        document.getElementById('successModal').classList.remove('hidden');
+      }
+      btn.disabled = false;
+      btn.textContent = '确认支付 ' + App.formatMoney(amount);
+    }
+
+    function goOrders() {
+      document.getElementById('successModal').classList.add('hidden');
+      location.href = '../orders/index.html';
+    }
+    function goHome() {
+      document.getElementById('successModal').classList.add('hidden');
+      location.href = '../home/index.html';
+    }
+    function goDeposit() {
+      document.getElementById('balanceModal').classList.add('hidden');
+      location.href = `../account/index.html`;
+    }
+
+    renderLedgerOption();
+  </script>
+</body>
+</html>

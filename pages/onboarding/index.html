@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>消费者开户</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+  <style>
+    .step-content { display: none; }
+    .step-content.active { display: block; }
+    .step-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+    .step-desc { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 24px; }
+    .agreement-box {
+      background: #f9f9f9;
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .step-nav { display: flex; gap: 10px; margin-top: 20px; }
+    .step-nav .btn { flex: 1; }
+    .success-page { text-align: center; padding: 40px 20px; }
+    .success-icon { font-size: 72px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()"><span>‹</span></div>
+      <div class="navbar-title"><div>消费者开户</div></div>
+      <div class="navbar-right"></div>
+    </div>
+
+    <div class="page-content">
+      <!-- Steps -->
+      <div class="steps" id="stepsIndicator">
+        <div class="step active" id="stepInd-1">
+          <div class="step-circle">1</div>
+          <div class="step-label">身份认证</div>
+        </div>
+        <div class="step" id="stepLine-1"><div class="step-line"></div></div>
+        <div class="step" id="stepInd-2">
+          <div class="step-circle">2</div>
+          <div class="step-label">阅读协议</div>
+        </div>
+        <div class="step" id="stepLine-2"><div class="step-line"></div></div>
+        <div class="step" id="stepInd-3">
+          <div class="step-circle">3</div>
+          <div class="step-label">完成</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Identity -->
+      <div class="step-content active" id="step-1">
+        <div class="step-title">身份认证</div>
+        <div class="step-desc">请填写真实信息，完成实名认证</div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">姓名 <span class="required">*</span></label>
+              <input type="text" class="form-input" id="inputName" placeholder="请输入真实姓名" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label class="form-label">手机号 <span class="required">*</span></label>
+              <input type="tel" class="form-input" id="inputPhone" placeholder="请输入手机号" maxlength="11">
+            </div>
+            <div class="form-group">
+              <label class="form-label">验证码 <span class="required">*</span></label>
+              <div style="display:flex;gap:8px">
+                <input type="text" class="form-input" id="inputCode" placeholder="请输入验证码" maxlength="6" style="flex:1">
+                <button class="btn btn-outline btn-sm" id="sendCodeBtn" onclick="sendCode()" style="width:auto;flex-shrink:0">发送验证码</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-primary" onclick="nextStep(1)">下一步</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Agreement -->
+      <div class="step-content" id="step-2">
+        <div class="step-title">阅读协议</div>
+        <div class="step-desc">请完整阅读并同意以下协议</div>
+
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <div class="agreement-box" id="agreementContent">
+              <!-- JS fills -->
+            </div>
+          </div>
+        </div>
+
+        <div class="checkbox-label" style="margin:16px 0">
+          <input type="checkbox" id="agreeCheck">
+          <label for="agreeCheck">我已完整阅读并同意签署 <a href="../agreement/index.html" class="agreement-link">《资金预存服务协议》</a></label>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-secondary" onclick="prevStep(2)">上一步</button>
+          <button class="btn btn-primary" onclick="nextStep(2)">下一步</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Complete -->
+      <div class="step-content" id="step-3">
+        <div class="success-page">
+          <div class="success-icon">🎉</div>
+          <div style="font-size:22px;font-weight:700;margin-bottom:8px">开户成功！</div>
+          <div style="font-size:14px;color:var(--text-muted);margin-bottom:24px">
+            您已成为平台正式会员<br>享受资金预存与托管服务
+          </div>
+          <div style="background:var(--green-light);border-radius:var(--radius);padding:16px;margin-bottom:24px;text-align:left">
+            <div style="font-size:13px;color:var(--green);font-weight:500;margin-bottom:8px">✅ 认证信息</div>
+            <div style="font-size:13px;color:var(--text-secondary)" id="confirmInfo"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-primary btn-lg" onclick="goHome()">进入首页</button>
+            <button class="btn btn-secondary" onclick="goAccount()">查看我的账户</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const App = MobileApp;
+    let currentStep = 1;
+    let codeTimer = null;
+    let codeCountdown = 0;
+    let formData = { name: '', phone: '' };
+
+    function updateStepIndicator() {
+      for (let i = 1; i <= 3; i++) {
+        const ind = document.getElementById('stepInd-' + i);
+        if (!ind) continue;
+        if (i < currentStep) { ind.className = 'step done'; ind.querySelector('.step-circle').textContent = '✓'; }
+        else if (i === currentStep) { ind.className = 'step active'; }
+        else { ind.className = 'step'; }
+        const line = document.getElementById('stepLine-' + (i - 1));
+        if (line) line.className = i <= currentStep ? 'step done' : 'step';
+      }
+    }
+
+    function showStep(n) {
+      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+      document.getElementById('step-' + n)?.classList.add('active');
+      updateStepIndicator();
+      currentStep = n;
+      window.scrollTo(0, 0);
+    }
+
+    function nextStep(from) {
+      if (from === 1) {
+        const name = document.getElementById('inputName').value.trim();
+        const phone = document.getElementById('inputPhone').value.trim();
+        const code = document.getElementById('inputCode').value.trim();
+        if (!name) return App.showToast('请输入姓名');
+        if (!phone || !/^1\d{10}$/.test(phone)) return App.showToast('请输入正确的手机号');
+        if (!code || code.length < 4) return App.showToast('请输入验证码');
+        formData = { name, phone };
+        showStep(2);
+      } else if (from === 2) {
+        if (!document.getElementById('agreeCheck').checked) return App.showToast('请先阅读并同意协议');
+        // Fill confirm info
+        document.getElementById('confirmInfo').innerHTML = `姓名：${formData.name}<br>手机号：${formData.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}`;
+        showStep(3);
+      }
+    }
+
+    function prevStep(from) {
+      if (from === 2) showStep(1);
+    }
+
+    function sendCode() {
+      if (codeCountdown > 0) return;
+      const phone = document.getElementById('inputPhone').value.trim();
+      if (!phone || !/^1\d{10}$/.test(phone)) return App.showToast('请输入正确的手机号');
+      const btn = document.getElementById('sendCodeBtn');
+      codeCountdown = 60;
+      btn.textContent = codeCountdown + 's';
+      btn.disabled = true;
+      App.showToast('验证码已发送');
+      codeTimer = setInterval(() => {
+        codeCountdown--;
+        btn.textContent = codeCountdown + 's';
+        if (codeCountdown <= 0) {
+          clearInterval(codeTimer);
+          btn.textContent = '发送验证码';
+          btn.disabled = false;
+        }
+      }, 1000);
+    }
+
+    function goHome() { location.href = '../home/index.html'; }
+    function goAccount() { location.href = '../account/index.html'; }
+
+    // Load agreement content
+    const agr = App.MOCK.agreements[0];
+    document.getElementById('agreementContent').innerHTML = '<div style="font-size:13px;line-height:2">' + agr.content.replace(/\n/g, '<br>') + '</div>';
+  </script>
+</body>
+</html>

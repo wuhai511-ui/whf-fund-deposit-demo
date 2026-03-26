@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>我的订单</title>
+  <link rel="stylesheet" href="../../css/mobile.css">
+</head>
+<body>
+  <div class="app-page">
+    <div class="navbar">
+      <div class="navbar-back" onclick="MobileApp.back()"><span>‹</span></div>
+      <div class="navbar-title"><div>我的订单</div></div>
+      <div class="navbar-right"></div>
+    </div>
+
+    <div class="page-content">
+      <!-- Tabs -->
+      <div class="tabs-row" style="margin-bottom:16px" id="tabBar">
+        <div class="tab-pill active" onclick="switchTab('all')">全部</div>
+        <div class="tab-pill" onclick="switchTab('completed')">已完成</div>
+        <div class="tab-pill" onclick="switchTab('pending')">处理中</div>
+      </div>
+
+      <!-- Order List -->
+      <div id="orderList">
+        <!-- JS renders here -->
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="../home/index.html" class="nav-item">
+        <span class="nav-item-icon">🏠</span>
+        <span class="nav-item-label">首页</span>
+      </a>
+      <a href="index.html" class="nav-item active">
+        <span class="nav-item-icon">📋</span>
+        <span class="nav-item-label">订单</span>
+      </a>
+      <a href="../account/index.html" class="nav-item">
+        <span class="nav-item-icon">👤</span>
+        <span class="nav-item-label">我的</span>
+      </a>
+    </nav>
+  </div>
+
+  <script src="../../js/mobile-app.js"></script>
+  <script>
+    const App = MobileApp;
+    let currentFilter = 'all';
+
+    function switchTab(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab-pill').forEach(el => {
+        el.classList.toggle('active', el.textContent.trim() === (filter === 'all' ? '全部' : filter === 'completed' ? '已完成' : '处理中'));
+      });
+      renderOrders();
+    }
+
+    function renderOrders() {
+      const list = document.getElementById('orderList');
+      let orders = App.getOrdersByConsumer();
+      if (currentFilter !== 'all') {
+        orders = orders.filter(o => {
+          if (currentFilter === 'completed') return o.status === 'completed';
+          if (currentFilter === 'pending') return o.status === 'pending';
+          return true;
+        });
+      }
+      if (!orders.length) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">暂无订单</div><div class="empty-desc">去商户处消费后可查看订单</div></div>';
+        return;
+      }
+      list.innerHTML = orders.map(o => `
+        <div class="card" onclick="showOrderDetail('${o.id}')" style="cursor:pointer">
+          <div class="card-header" style="padding:12px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+              <span style="font-size:13px;color:var(--text-secondary)">${o.merchant_name}</span>
+              <span class="badge ${App.orderStatusClass(o.status)}">${App.statusLabel(o.status)}</span>
+            </div>
+          </div>
+          <div class="card-body" style="padding:12px 16px">
+            <div style="font-size:15px;font-weight:500;margin-bottom:8px">${o.service_name}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12px;color:var(--text-muted)">${App.formatDateTime(o.created_at)}</span>
+              <span style="font-size:17px;font-weight:700;color:var(--orange)">${App.formatMoney(o.amount)}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function showOrderDetail(orderId) {
+      const order = App.getOrdersByConsumer().find(o => o.id === orderId);
+      if (!order) return;
+      const tx = App.getTransactionsByConsumer().find(t => t.id === order.tx_id);
+      const sheet = document.createElement('div');
+      sheet.className = 'popover';
+      sheet.innerHTML = `
+        <div class="popover-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-header">
+            <span>订单详情</span>
+            <button onclick="this.closest('.popover').remove()" style="font-size:22px;color:#999;background:none;border:none">×</button>
+          </div>
+          <div class="sheet-body">
+            <div style="text-align:center;margin-bottom:20px">
+              <div style="font-size:40px;margin-bottom:8px">${order.status === 'completed' ? '✅' : '⏳'}</div>
+              <div style="font-size:18px;font-weight:700">${App.statusLabel(order.status)}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:14px">
+              <div><span style="color:var(--text-muted)">商户</span><div style="font-weight:500;margin-top:2px">${order.merchant_name}</div></div>
+              <div><span style="color:var(--text-muted)">服务</span><div style="font-weight:500;margin-top:2px">${order.service_name}</div></div>
+              <div><span style="color:var(--text-muted)">金额</span><div style="font-weight:700;color:var(--orange);margin-top:2px">${App.formatMoney(order.amount)}</div></div>
+              <div><span style="color:var(--text-muted)">订单号</span><div style="font-size:12px;margin-top:2px;font-family:monospace">${order.id}</div></div>
+              <div><span style="color:var(--text-muted)">时间</span><div style="margin-top:2px">${App.formatDateTime(order.created_at)}</div></div>
+              ${tx ? `<div><span style="color:var(--text-muted)">交易号</span><div style="font-size:12px;margin-top:2px;font-family:monospace">${tx.id}</div></div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+      sheet.addEventListener('click', function(e) { if (e.target === this) this.remove(); });
+      document.body.appendChild(sheet);
+    }
+
+    renderOrders();
+  </script>
+</body>
+</html>
