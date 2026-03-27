@@ -1,11 +1,22 @@
-const { PrismaClient } = require('@prisma/client');
-const { PrismaLibSql } = require('@prisma/adapter-libsql');
-const path = require('path');
+const { PrismaClient } = require('@prisma/client')
+const { PrismaLibSql } = require('@prisma/adapter-libsql')
+const path = require('path')
 
-const dbPath = path.join(__dirname, 'prisma', 'dev.db');
-const adapter = new PrismaLibSql({
-  url: `file:${dbPath}`,
-});
-const prisma = new PrismaClient({ adapter });
+// Prisma 7: 必须通过 adapter 传入数据库连接
+const libsql = new PrismaLibSql({
+  url: 'file:' + path.resolve(__dirname, './prisma/dev.db'),
+})
+const prisma = new PrismaClient({ adapter: libsql })
 
-prisma.merchant.findMany().then(console.log).catch(console.error).finally(() => prisma.$disconnect());
+async function main() {
+  try {
+    const merchants = await prisma.merchant.findMany()
+    console.log('Merchants:', merchants)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+main()

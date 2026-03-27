@@ -1,88 +1,86 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+datasource db {
+  provider = "sqlite"
+}
 
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
-}
-
 model Merchant {
-  id        String   @id
-  name      String
-  industry  String
-  status    String
-  createdAt DateTime @map("created_at")
-  
-  ledgers       Ledger[]
-  transactions  Transaction[]
-  settlements   Settlement[]
-
-  @@map("merchants")
+  id               String    @id @default(cuid())
+  name             String
+  industry         String
+  status           String    @default("pending")
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  ledgerCount      Int       @default(0)
+  balance          Float     @default(0)
+  address          String?
+  rating           Float?
+  service_count    Int?
+  description      String?
+  tags             String    // Changed from String[] to String to store as JSON string
+  logo             String?
 }
 
 model Consumer {
-  id        String   @id
-  name      String
-  phone     String   @unique
-  status    String
-  createdAt DateTime @map("created_at")
-  
-  ledgers      Ledger[]
-  transactions Transaction[]
-
-  @@map("consumers")
+  id          String   @id @default(cuid())
+  open_id     String?  @unique
+  phone       String?  @unique
+  name        String
+  status      String   @default("active")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  ledgerCount Int      @default(0)
 }
 
 model Ledger {
-  id            String   @id
-  merchantId    String   @map("merchant_id")
-  consumerId    String   @map("consumer_id")
-  balance       Int
-  totalDeposited Int     @map("total_deposited")
-  totalSpent    Int      @map("total_spent")
-  status        String
-  createdAt     DateTime @map("created_at")
-  updatedAt     DateTime @map("updated_at")
-  
-  merchant     Merchant      @relation(fields: [merchantId], references: [id])
-  consumer     Consumer      @relation(fields: [consumerId], references: [id])
-  transactions Transaction[]
+  id               String    @id @default(cuid())
+  merchant_id      String
+  merchant_name    String
+  merchant_logo    String?
+  consumer_id      String
+  consumer_name    String? // Denormalized for easier display
+  balance          Float     @default(0)
+  total_deposited  Float     @default(0)
+  total_spent      Float     @default(0)
+  status           String    @default("active")
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
 
-  @@map("ledgers")
+  @@index([merchant_id])
+  @@index([consumer_id])
 }
 
 model Transaction {
-  id            String   @id
-  ledgerId      String   @map("ledger_id")
-  merchantId    String   @map("merchant_id")
-  consumerId    String   @map("consumer_id")
-  type          String
-  amount        Int
-  balanceBefore Int      @map("balance_before")
-  balanceAfter  Int      @map("balance_after")
-  status        String
+  id            String   @id @default(cuid())
+  ledger_id     String
+  merchant_id   String
+  merchant_name String
+  consumer_id   String
+  type          String // deposit, withdraw, refund
+  amount        Float
+  balance_before Float
+  balance_after Float
+  status        String // pending, completed, failed
   description   String?
-  createdAt     DateTime @map("created_at")
-  
-  ledger   Ledger   @relation(fields: [ledgerId], references: [id])
-  merchant Merchant @relation(fields: [merchantId], references: [id])
-  consumer Consumer @relation(fields: [consumerId], references: [id])
+  created_at    DateTime @default(now())
 
-  @@map("transactions")
+  @@index([ledger_id])
+  @@index([merchant_id])
+  @@index([consumer_id])
 }
 
 model Settlement {
-  id        String   @id
-  merchantId String  @map("merchant_id")
-  amount    Int
-  status    String
-  createdAt DateTime @map("created_at")
-  
-  merchant Merchant @relation(fields: [merchantId], references: [id])
+  id           String   @id @default(cuid())
+  merchant_id  String
+  merchant_name String
+  period       String // e.g., "2026-W13"
+  total_amount Float
+  fee          Float    @default(0)
+  net_amount   Float
+  status       String   @default("pending") // pending, completed, failed
+  created_at   DateTime @default(now())
 
-  @@map("settlements")
+  @@index([merchant_id])
 }
