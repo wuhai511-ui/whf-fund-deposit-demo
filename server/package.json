@@ -9,10 +9,14 @@
     "init-db": "node db/init.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.2",
+    "@libsql/client": "^0.17.2",
+    "@prisma/adapter-libsql": "^7.5.0",
+    "@prisma/client": "^7.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^7.5.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

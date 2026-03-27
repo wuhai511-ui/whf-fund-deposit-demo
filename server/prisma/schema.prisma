@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Merchant {
+  id        String   @id
+  name      String
+  industry  String
+  status    String
+  createdAt DateTime @map("created_at")
+  
+  ledgers       Ledger[]
+  transactions  Transaction[]
+  settlements   Settlement[]
+
+  @@map("merchants")
+}
+
+model Consumer {
+  id        String   @id
+  name      String
+  phone     String   @unique
+  status    String
+  createdAt DateTime @map("created_at")
+  
+  ledgers      Ledger[]
+  transactions Transaction[]
+
+  @@map("consumers")
+}
+
+model Ledger {
+  id            String   @id
+  merchantId    String   @map("merchant_id")
+  consumerId    String   @map("consumer_id")
+  balance       Int
+  totalDeposited Int     @map("total_deposited")
+  totalSpent    Int      @map("total_spent")
+  status        String
+  createdAt     DateTime @map("created_at")
+  updatedAt     DateTime @map("updated_at")
+  
+  merchant     Merchant      @relation(fields: [merchantId], references: [id])
+  consumer     Consumer      @relation(fields: [consumerId], references: [id])
+  transactions Transaction[]
+
+  @@map("ledgers")
+}
+
+model Transaction {
+  id            String   @id
+  ledgerId      String   @map("ledger_id")
+  merchantId    String   @map("merchant_id")
+  consumerId    String   @map("consumer_id")
+  type          String
+  amount        Int
+  balanceBefore Int      @map("balance_before")
+  balanceAfter  Int      @map("balance_after")
+  status        String
+  description   String?
+  createdAt     DateTime @map("created_at")
+  
+  ledger   Ledger   @relation(fields: [ledgerId], references: [id])
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  consumer Consumer @relation(fields: [consumerId], references: [id])
+
+  @@map("transactions")
+}
+
+model Settlement {
+  id        String   @id
+  merchantId String  @map("merchant_id")
+  amount    Int
+  status    String
+  createdAt DateTime @map("created_at")
+  
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@map("settlements")
+}
