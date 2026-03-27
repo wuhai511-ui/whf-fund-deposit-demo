@@ -4,176 +4,283 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { findAll, findById, insert, update } = require('../db/database');
+const { PrismaClient } = require('@prisma/client');
+const { PrismaLibSql } = require('@prisma/adapter-libsql');
+const path = require('path');
+
+const dbPath = path.join(__dirname, '..', 'prisma', 'dev.db');
+const adapter = new PrismaLibSql({ url: `file:${dbPath}` });
+const prisma = new PrismaClient({ adapter });
 
 // GET /api/v1/transactions - 交易列表
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { merchant_id, consumer_id, ledger_id, type, status, page = 1, pageSize = 50 } = req.query;
-    let list = findAll('transactions');
+    const where = {};
+    if (merchant_id) where.merchantId = merchant_id;
+    if (consumer_id) where.consumerId = consumer_id;
+    if (ledger_id) where.ledgerId = ledger_id;
+    if (type) where.type = type;
+    if (status) where.status = status;
 
-    if (merchant_id) list = list.filter(t => t.merchant_id === merchant_id);
-    if (consumer_id) list = list.filter(t => t.consumer_id === consumer_id);
-    if (ledger_id) list = list.filter(t => t.ledger_id === ledger_id);
-    if (type) list = list.filter(t => t.type === type);
-    if (status) list = list.filter(t => t.status === status);
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        skip: (parseInt(page) - 1) * parseInt(pageSize),
+        take: parseInt(pageSize),
+        orderBy: { createdAt: 'desc' },
+        include: { merchant: true, consumer: true }
+      }),
+      prisma.transaction.count({ where })
+    ]);
 
-    list = list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    const total = list.length;
-    const offset = (parseInt(page) - 1) * parseInt(pageSize);
-    const paged = list.slice(offset, offset + parseInt(pageSize));
-
-    const merchants = findAll('merchants');
-    const consumers = findAll('consumers');
-
-    const result = paged.map(t => {
-      const merchant = findById('merchants', t.merchant_id);
-      const consumer = findById('consumers', t.consumer_id);
-      return { ...t, merchant_name: merchant?.name || '-', consumer_name: consumer?.name || '-' };
-    });
+    const result = transactions.map(t => ({
+      ...t,
+      amount: Number(t.amount),
+      balance_before: Number(t.balanceBefore),
+      balance_after: Number(t.balanceAfter),
+      merchant_name: t.merchant?.name || '-',
+      consumer_name: t.consumer?.name || '-'
+    }));
 
     res.json({ code: 0, message: 'success', data: {
       list: result,
       pagination: { total, page: parseInt(page), pageSize: parseInt(pageSize) }
     }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // GET /api/v1/transactions/:id - 交易详情
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const tx = findById('transactions', req.params.id);
+    const tx = await prisma.transaction.findUnique({
+      where: { id: req.params.id },
+      include: { merchant: true, consumer: true, ledger: true }
+    });
     if (!tx) return res.status(404).json({ code: 404, message: '交易不存在' });
 
-    const merchant = findById('merchants', tx.merchant_id);
-    const consumer = findById('consumers', tx.consumer_id);
-    const ledger = findById('ledgers', tx.ledger_id);
-
     res.json({ code: 0, message: 'success', data: {
-      ...tx, merchant_name: merchant?.name || '-', consumer_name: consumer?.name || '-',
-      current_balance: ledger?.balance || 0
+      ...tx,
+      amount: Number(tx.amount),
+      balance_before: Number(tx.balanceBefore),
+      balance_after: Number(tx.balanceAfter),
+      merchant_name: tx.merchant?.name || '-',
+      consumer_name: tx.consumer?.name || '-',
+      current_balance: tx.ledger ? Number(tx.ledger.balance) : 0
     }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // POST /api/v1/transactions/deposit - 预存资金
-router.post('/deposit', (req, res) => {
+router.post('/deposit', async (req, res) => {
+  const { merchant_id, consumer_id, amount, description = '资金预存' } = req.body;
+
+  if (!merchant_id || !consumer_id || !amount) {
+    return res.status(400).json({ code: 400, message: 'merchant_id, consumer_id, amount 必填' });
+  }
+  if (amount <= 0) return res.status(400).json({ code: 400, message: '金额必须大于0' });
+
   try {
-    const { merchant_id, consumer_id, amount, description = '资金预存' } = req.body;
-
-    if (!merchant_id || !consumer_id || !amount) {
-      return res.status(400).json({ code: 400, message: 'merchant_id, consumer_id, amount 必填' });
-    }
-    if (amount <= 0) return res.status(400).json({ code: 400, message: '金额必须大于0' });
-
     // 查找或创建 Ledger
-    let ledger = findAll('ledgers').find(l => l.merchant_id === merchant_id && l.consumer_id === consumer_id);
+    let ledger = await prisma.ledger.findFirst({
+      where: { merchantId: merchant_id, consumerId: consumer_id }
+    });
+
     if (!ledger) {
-      ledger = {
-        id: 'ld_' + uuidv4().slice(0, 8), merchant_id, consumer_id,
-        balance: 0, total_deposited: 0, total_spent: 0, status: 'active',
-        created_at: new Date().toISOString(), updated_at: new Date().toISOString()
-      };
-      insert('ledgers', ledger);
+      ledger = await prisma.ledger.create({
+        data: {
+          id: 'ld_' + uuidv4().slice(0, 8),
+          merchantId: merchant_id,
+          consumerId: consumer_id,
+          balance: 0,
+          totalDeposited: 0,
+          totalSpent: 0,
+          status: 'active',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
     } else if (ledger.status !== 'active') {
       return res.status(400).json({ code: 400, message: 'Ledger状态不允许交易' });
     }
 
     const txId = 't_' + uuidv4().slice(0, 8);
-    const balanceBefore = ledger.balance;
-    const balanceAfter = balanceBefore + amount;
+    const balanceBefore = Number(ledger.balance);
+    const balanceAfter = balanceBefore + Number(amount);
 
     // 更新 Ledger
-    update('ledgers', ledger.id, {
-      balance: balanceAfter,
-      total_deposited: ledger.total_deposited + amount,
-      updated_at: new Date().toISOString()
-    });
+    const [updatedLedger, tx] = await prisma.$transaction([
+      prisma.ledger.update({
+        where: { id: ledger.id },
+        data: {
+          balance: balanceAfter,
+          totalDeposited: Number(ledger.totalDeposited) + Number(amount),
+          updatedAt: new Date()
+        }
+      }),
+      prisma.transaction.create({
+        data: {
+          id: txId,
+          ledgerId: ledger.id,
+          merchantId: merchant_id,
+          consumerId: consumer_id,
+          type: 'deposit',
+          amount: Number(amount),
+          balanceBefore,
+          balanceAfter,
+          status: 'completed',
+          description,
+          createdAt: new Date()
+        }
+      })
+    ]);
 
-    // 创建交易
-    const tx = {
-      id: txId, ledger_id: ledger.id, merchant_id, consumer_id,
-      type: 'deposit', amount, balance_before: balanceBefore, balance_after: balanceAfter,
-      status: 'completed', description, created_at: new Date().toISOString()
-    };
-    insert('transactions', tx);
-
-    const updatedLedger = findById('ledgers', ledger.id);
-    res.json({ code: 0, message: '预存成功', data: { transaction: tx, ledger: updatedLedger }});
+    res.json({ code: 0, message: '预存成功', data: {
+      transaction: {
+        ...tx,
+        amount: Number(tx.amount),
+        balance_before: Number(tx.balanceBefore),
+        balance_after: Number(tx.balanceAfter)
+      },
+      ledger: {
+        id: updatedLedger.id,
+        balance: Number(updatedLedger.balance),
+        total_deposited: Number(updatedLedger.totalDeposited),
+        total_spent: Number(updatedLedger.totalSpent)
+      }
+    }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // POST /api/v1/transactions/withdraw - 消费扣款
-router.post('/withdraw', (req, res) => {
-  try {
-    const { ledger_id, amount, description = '消费扣款' } = req.body;
-    if (!ledger_id || !amount) return res.status(400).json({ code: 400, message: 'ledger_id, amount 必填' });
-    if (amount <= 0) return res.status(400).json({ code: 400, message: '金额必须大于0' });
+router.post('/withdraw', async (req, res) => {
+  const { ledger_id, amount, description = '消费扣款' } = req.body;
+  if (!ledger_id || !amount) return res.status(400).json({ code: 400, message: 'ledger_id, amount 必填' });
+  if (amount <= 0) return res.status(400).json({ code: 400, message: '金额必须大于0' });
 
-    const ledger = findById('ledgers', ledger_id);
+  try {
+    const ledger = await prisma.ledger.findUnique({ where: { id: ledger_id } });
     if (!ledger) return res.status(404).json({ code: 404, message: 'Ledger不存在' });
     if (ledger.status !== 'active') return res.status(400).json({ code: 400, message: 'Ledger状态不允许交易' });
-    if ((ledger.balance || 0) < amount) {
-      return res.status(400).json({ code: 400, message: '余额不足', data: { available: ledger.balance }});
+    if (Number(ledger.balance) < amount) {
+      return res.status(400).json({ code: 400, message: '余额不足', data: { available: Number(ledger.balance) } });
     }
 
     const txId = 't_' + uuidv4().slice(0, 8);
-    const balanceBefore = ledger.balance;
-    const balanceAfter = balanceBefore - amount;
+    const balanceBefore = Number(ledger.balance);
+    const balanceAfter = balanceBefore - Number(amount);
 
-    update('ledgers', ledger.id, {
-      balance: balanceAfter,
-      total_spent: ledger.total_spent + amount,
-      updated_at: new Date().toISOString()
-    });
+    const [updatedLedger, tx] = await prisma.$transaction([
+      prisma.ledger.update({
+        where: { id: ledger.id },
+        data: {
+          balance: balanceAfter,
+          totalSpent: Number(ledger.totalSpent) + Number(amount),
+          updatedAt: new Date()
+        }
+      }),
+      prisma.transaction.create({
+        data: {
+          id: txId,
+          ledgerId: ledger.id,
+          merchantId: ledger.merchantId,
+          consumerId: ledger.consumerId,
+          type: 'withdraw',
+          amount: Number(amount),
+          balanceBefore,
+          balanceAfter,
+          status: 'completed',
+          description,
+          createdAt: new Date()
+        }
+      })
+    ]);
 
-    const tx = {
-      id: txId, ledger_id: ledger.id, merchant_id: ledger.merchant_id, consumer_id: ledger.consumer_id,
-      type: 'withdraw', amount, balance_before: balanceBefore, balance_after: balanceAfter,
-      status: 'completed', description, created_at: new Date().toISOString()
-    };
-    insert('transactions', tx);
-
-    const updatedLedger = findById('ledgers', ledger.id);
-    res.json({ code: 0, message: '扣款成功', data: { transaction: tx, ledger: updatedLedger }});
+    res.json({ code: 0, message: '扣款成功', data: {
+      transaction: {
+        ...tx,
+        amount: Number(tx.amount),
+        balance_before: Number(tx.balanceBefore),
+        balance_after: Number(tx.balanceAfter)
+      },
+      ledger: {
+        id: updatedLedger.id,
+        balance: Number(updatedLedger.balance),
+        total_deposited: Number(updatedLedger.totalDeposited),
+        total_spent: Number(updatedLedger.totalSpent)
+      }
+    }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // POST /api/v1/transactions/refund - 退款
-router.post('/refund', (req, res) => {
-  try {
-    const { ledger_id, amount, description = '退款' } = req.body;
-    if (!ledger_id || !amount) return res.status(400).json({ code: 400, message: 'ledger_id, amount 必填' });
-    if (amount <= 0) return res.status(400).json({ code: 400, message: '金额必须大于0' });
+router.post('/refund', async (req, res) => {
+  const { ledger_id, amount, description = '退款' } = req.body;
+  if (!ledger_id || !amount) return res.status(400).json({ code: 400, message: 'ledger_id, amount 必填' });
+  if (amount <= 0) return res.status(400).json({ code: 400, message: '金额必须大于0' });
 
-    const ledger = findById('ledgers', ledger_id);
+  try {
+    const ledger = await prisma.ledger.findUnique({ where: { id: ledger_id } });
     if (!ledger) return res.status(404).json({ code: 404, message: 'Ledger不存在' });
     if (ledger.status !== 'active') return res.status(400).json({ code: 400, message: 'Ledger状态不允许交易' });
 
     const txId = 't_' + uuidv4().slice(0, 8);
-    const balanceBefore = ledger.balance;
-    const balanceAfter = balanceBefore + amount;
+    const balanceBefore = Number(ledger.balance);
+    const balanceAfter = balanceBefore + Number(amount);
 
-    update('ledgers', ledger.id, { balance: balanceAfter, updated_at: new Date().toISOString() });
+    const [updatedLedger, tx] = await prisma.$transaction([
+      prisma.ledger.update({
+        where: { id: ledger.id },
+        data: { balance: balanceAfter, updatedAt: new Date() }
+      }),
+      prisma.transaction.create({
+        data: {
+          id: txId,
+          ledgerId: ledger.id,
+          merchantId: ledger.merchantId,
+          consumerId: ledger.consumerId,
+          type: 'refund',
+          amount: Number(amount),
+          balanceBefore,
+          balanceAfter,
+          status: 'completed',
+          description,
+          createdAt: new Date()
+        }
+      })
+    ]);
 
-    const tx = {
-      id: txId, ledger_id: ledger.id, merchant_id: ledger.merchant_id, consumer_id: ledger.consumer_id,
-      type: 'refund', amount, balance_before: balanceBefore, balance_after: balanceAfter,
-      status: 'completed', description, created_at: new Date().toISOString()
-    };
-    insert('transactions', tx);
-    res.json({ code: 0, message: '退款成功', data: tx });
+    res.json({ code: 0, message: '退款成功', data: {
+      ...tx,
+      amount: Number(tx.amount),
+      balance_before: Number(tx.balanceBefore),
+      balance_after: Number(tx.balanceAfter)
+    }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 

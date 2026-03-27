@@ -4,121 +4,189 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { findAll, findById, insert, update } = require('../db/database');
+const { PrismaClient } = require('@prisma/client');
+const { PrismaLibSql } = require('@prisma/adapter-libsql');
+const path = require('path');
+
+const dbPath = path.join(__dirname, '..', 'prisma', 'dev.db');
+const adapter = new PrismaLibSql({ url: `file:${dbPath}` });
+const prisma = new PrismaClient({ adapter });
 
 // GET /api/v1/merchants - 商户列表
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, industry, page = 1, pageSize = 20 } = req.query;
-    let list = findAll('merchants');
 
-    if (status) list = list.filter(m => m.status === status);
-    if (industry) list = list.filter(m => m.industry === industry);
+    const where = {};
+    if (status) where.status = status;
+    if (industry) where.industry = industry;
 
-    const total = list.length;
-    const offset = (parseInt(page) - 1) * parseInt(pageSize);
-    const paged = list.slice(offset, offset + parseInt(pageSize));
+    const [merchants, total] = await Promise.all([
+      prisma.merchant.findMany({
+        where,
+        skip: (parseInt(page) - 1) * parseInt(pageSize),
+        take: parseInt(pageSize),
+        include: {
+          ledgers: {
+            select: { balance: true, totalDeposited: true, consumerId: true }
+          }
+        }
+      }),
+      prisma.merchant.count({ where })
+    ]);
 
-    // 补充统计
-    const ledgers = findAll('ledgers');
-    const result = paged.map(m => {
-      const mLedgers = ledgers.filter(l => l.merchant_id === m.id);
-      return {
-        ...m,
-        ledger_count: mLedgers.length,
-        total_balance: mLedgers.reduce((s, l) => s + (l.balance || 0), 0)
-      };
-    });
+    const result = merchants.map(m => ({
+      id: m.id,
+      name: m.name,
+      industry: m.industry,
+      status: m.status,
+      created_at: m.createdAt,
+      ledger_count: m.ledgers.length,
+      total_balance: m.ledgers.reduce((s, l) => s + Number(l.balance), 0)
+    }));
 
     res.json({ code: 0, message: 'success', data: {
       list: result,
       pagination: { total, page: parseInt(page), pageSize: parseInt(pageSize) }
     }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // GET /api/v1/merchants/:id - 商户详情
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const merchant = findById('merchants', req.params.id);
+    const merchant = await prisma.merchant.findUnique({ where: { id: req.params.id } });
     if (!merchant) return res.status(404).json({ code: 404, message: '商户不存在' });
 
-    const ledgers = findAll('ledgers').filter(l => l.merchant_id === merchant.id);
-    const transactions = findAll('transactions').filter(t => t.merchant_id === merchant.id)
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
-    const consumers = findAll('consumers');
-
-    const stats = {
-      consumer_count: new Set(ledgers.map(l => l.consumer_id)).size,
-      ledger_count: ledgers.length,
-      total_balance: ledgers.reduce((s, l) => s + (l.balance || 0), 0),
-      total_deposited: ledgers.reduce((s, l) => s + (l.total_deposited || 0), 0),
-    };
-
-    const recentTx = transactions.map(t => {
-      const consumer = findById('consumers', t.consumer_id);
-      return { ...t, consumer_name: consumer?.name || '-' };
+    const ledgers = await prisma.ledger.findMany({ where: { merchantId: merchant.id } });
+    const transactions = await prisma.transaction.findMany({
+      where: { merchantId: merchant.id },
+      orderBy: { createdAt: 'desc' },
+      take: 10
     });
 
-    res.json({ code: 0, message: 'success', data: { ...merchant, stats, recent_transactions: recentTx }});
+    const consumerIds = [...new Set(ledgers.map(l => l.consumerId))];
+    const consumers = await prisma.consumer.findMany({ where: { id: { in: consumerIds } } });
+    const consumerMap = Object.fromEntries(consumers.map(c => [c.id, c]));
+
+    const stats = {
+      consumer_count: consumerIds.length,
+      ledger_count: ledgers.length,
+      total_balance: ledgers.reduce((s, l) => s + Number(l.balance), 0),
+      total_deposited: ledgers.reduce((s, l) => s + Number(l.totalDeposited), 0),
+    };
+
+    const recentTx = transactions.map(t => ({
+      ...t,
+      amount: Number(t.amount),
+      balance_before: Number(t.balanceBefore),
+      balance_after: Number(t.balanceAfter),
+      consumer_name: consumerMap[t.consumerId]?.name || '-'
+    }));
+
+    res.json({ code: 0, message: 'success', data: {
+      id: merchant.id,
+      name: merchant.name,
+      industry: merchant.industry,
+      status: merchant.status,
+      created_at: merchant.createdAt,
+      stats,
+      recent_transactions: recentTx
+    }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // POST /api/v1/merchants - 创建商户
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { name, industry = 'general', contact_phone } = req.body;
+    const { name, industry = 'general' } = req.body;
     if (!name) return res.status(400).json({ code: 400, message: '商户名称必填' });
 
-    const merchant = {
-      id: 'm_' + uuidv4().slice(0, 8),
-      name, industry, contact_phone: contact_phone || null,
-      status: 'active', created_at: new Date().toISOString()
-    };
-    insert('merchants', merchant);
-    res.json({ code: 0, message: '商户创建成功', data: merchant });
+    const merchant = await prisma.merchant.create({
+      data: {
+        id: 'm_' + uuidv4().slice(0, 8),
+        name,
+        industry,
+        status: 'active',
+        createdAt: new Date()
+      }
+    });
+
+    res.json({ code: 0, message: '商户创建成功', data: {
+      id: merchant.id,
+      name: merchant.name,
+      industry: merchant.industry,
+      status: merchant.status,
+      created_at: merchant.createdAt
+    }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // PATCH /api/v1/merchants/:id - 更新商户
-router.patch('/:id', (req, res) => {
+router.patch('/:id', async (req, res) => {
   try {
-    const { name, industry, contact_phone, status } = req.body;
-    const updates = {};
-    if (name !== undefined) updates.name = name;
-    if (industry !== undefined) updates.industry = industry;
-    if (contact_phone !== undefined) updates.contact_phone = contact_phone;
-    if (status !== undefined) updates.status = status;
-    updates.updated_at = new Date().toISOString();
+    const { name, industry, status } = req.body;
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (industry !== undefined) data.industry = industry;
+    if (status !== undefined) data.status = status;
 
-    const merchant = update('merchants', req.params.id, updates);
-    if (!merchant) return res.status(404).json({ code: 404, message: '商户不存在' });
-    res.json({ code: 0, message: '更新成功', data: merchant });
+    const merchant = await prisma.merchant.update({ where: { id: req.params.id }, data });
+    res.json({ code: 0, message: '更新成功', data: {
+      id: merchant.id,
+      name: merchant.name,
+      industry: merchant.industry,
+      status: merchant.status,
+      created_at: merchant.createdAt
+    }});
   } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ code: 404, message: '商户不存在' });
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // GET /api/v1/merchants/:id/ledgers - 商户的所有Ledger
-router.get('/:id/ledgers', (req, res) => {
+router.get('/:id/ledgers', async (req, res) => {
   try {
-    const ledgers = findAll('ledgers').filter(l => l.merchant_id === req.params.id)
-      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    const consumers = findAll('consumers');
-
-    const result = ledgers.map(l => {
-      const consumer = findById('consumers', l.consumer_id);
-      return { ...l, consumer_name: consumer?.name || '-', consumer_phone: consumer?.phone || '-' };
+    const ledgers = await prisma.ledger.findMany({
+      where: { merchantId: req.params.id },
+      orderBy: { updatedAt: 'desc' },
+      include: { consumer: true }
     });
+
+    const result = ledgers.map(l => ({
+      ...l,
+      balance: Number(l.balance),
+      total_deposited: Number(l.totalDeposited),
+      total_spent: Number(l.totalSpent),
+      consumer_name: l.consumer?.name || '-',
+      consumer_phone: l.consumer?.phone || '-'
+    }));
+
     res.json({ code: 0, message: 'success', data: result });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 

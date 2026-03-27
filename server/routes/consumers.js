@@ -4,90 +4,162 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { findAll, findById, insert } = require('../db/database');
+const { PrismaClient } = require('@prisma/client');
+const { PrismaLibSql } = require('@prisma/adapter-libsql');
+const path = require('path');
+
+const dbPath = path.join(__dirname, '..', 'prisma', 'dev.db');
+const adapter = new PrismaLibSql({ url: `file:${dbPath}` });
+const prisma = new PrismaClient({ adapter });
 
 // GET /api/v1/consumers - 消费者列表
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { status, page = 1, pageSize = 20 } = req.query;
-    let list = findAll('consumers');
-    if (status) list = list.filter(c => c.status === status);
+    const where = {};
+    if (status) where.status = status;
 
-    const total = list.length;
-    const offset = (parseInt(page) - 1) * parseInt(pageSize);
-    const paged = list.slice(offset, offset + parseInt(pageSize));
+    const [consumers, total] = await Promise.all([
+      prisma.consumer.findMany({
+        where,
+        skip: (parseInt(page) - 1) * parseInt(pageSize),
+        take: parseInt(pageSize),
+        include: {
+          ledgers: { select: { balance: true } }
+        }
+      }),
+      prisma.consumer.count({ where })
+    ]);
 
-    const ledgers = findAll('ledgers');
-    const result = paged.map(c => {
-      const cLedgers = ledgers.filter(l => l.consumer_id === c.id);
-      return {
-        ...c,
-        ledger_count: cLedgers.length,
-        total_balance: cLedgers.reduce((s, l) => s + (l.balance || 0), 0)
-      };
-    });
+    const result = consumers.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      status: c.status,
+      created_at: c.createdAt,
+      ledger_count: c.ledgers.length,
+      total_balance: c.ledgers.reduce((s, l) => s + Number(l.balance), 0)
+    }));
 
     res.json({ code: 0, message: 'success', data: {
       list: result,
       pagination: { total, page: parseInt(page), pageSize: parseInt(pageSize) }
     }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // GET /api/v1/consumers/:id - 消费者详情
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const consumer = findById('consumers', req.params.id);
+    const consumer = await prisma.consumer.findUnique({ where: { id: req.params.id } });
     if (!consumer) return res.status(404).json({ code: 404, message: '消费者不存在' });
 
-    const ledgers = findAll('ledgers').filter(l => l.consumer_id === consumer.id);
-    const merchants = findAll('merchants');
-    const txResult = ledgers.map(l => {
-      const merchant = findById('merchants', l.merchant_id);
-      return { ...l, merchant_name: merchant?.name || '-', merchant_industry: merchant?.industry || '-' };
+    const ledgers = await prisma.ledger.findMany({
+      where: { consumerId: consumer.id },
+      include: { merchant: true }
+    });
+    const recentTx = await prisma.transaction.findMany({
+      where: { consumerId: consumer.id },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      include: { merchant: true }
     });
 
-    const recentTx = findAll('transactions').filter(t => t.consumer_id === consumer.id)
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10)
-      .map(t => { const m = findById('merchants', t.merchant_id); return { ...t, merchant_name: m?.name || '-' }; });
+    const result = {
+      id: consumer.id,
+      name: consumer.name,
+      phone: consumer.phone,
+      status: consumer.status,
+      created_at: consumer.createdAt,
+      ledgers: ledgers.map(l => ({
+        ...l,
+        balance: Number(l.balance),
+        total_deposited: Number(l.totalDeposited),
+        total_spent: Number(l.totalSpent),
+        merchant_name: l.merchant?.name || '-',
+        merchant_industry: l.merchant?.industry || '-'
+      })),
+      recent_transactions: recentTx.map(t => ({
+        ...t,
+        amount: Number(t.amount),
+        balance_before: Number(t.balanceBefore),
+        balance_after: Number(t.balanceAfter),
+        merchant_name: t.merchant?.name || '-'
+      }))
+    };
 
-    res.json({ code: 0, message: 'success', data: { ...consumer, ledgers: txResult, recent_transactions: recentTx }});
+    res.json({ code: 0, message: 'success', data: result });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // POST /api/v1/consumers - 创建消费者
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, phone, openid, id_card } = req.body;
     if (!phone) return res.status(400).json({ code: 400, message: '手机号必填' });
 
-    const existing = findAll('consumers').find(c => c.phone === phone);
+    const existing = await prisma.consumer.findUnique({ where: { phone } });
     if (existing) return res.status(409).json({ code: 409, message: '该手机号已注册' });
 
-    const consumer = {
-      id: 'c_' + uuidv4().slice(0, 8), name: name || null, phone, openid: openid || null,
-      id_card: id_card || null, status: 'active', created_at: new Date().toISOString()
-    };
-    insert('consumers', consumer);
-    res.json({ code: 0, message: '消费者创建成功', data: consumer });
+    const consumer = await prisma.consumer.create({
+      data: {
+        id: 'c_' + uuidv4().slice(0, 8),
+        name: name || null,
+        phone,
+        status: 'active',
+        createdAt: new Date()
+      }
+    });
+
+    res.json({ code: 0, message: '消费者创建成功', data: {
+      id: consumer.id,
+      name: consumer.name,
+      phone: consumer.phone,
+      status: consumer.status,
+      created_at: consumer.createdAt
+    }});
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
 // GET /api/v1/consumers/:id/ledgers - 消费者的所有Ledger
-router.get('/:id/ledgers', (req, res) => {
+router.get('/:id/ledgers', async (req, res) => {
   try {
-    const ledgers = findAll('ledgers').filter(l => l.consumer_id === req.params.id)
-      .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-      .map(l => { const m = findById('merchants', l.merchant_id); return { ...l, merchant_name: m?.name || '-', merchant_industry: m?.industry || '-' }; });
-    res.json({ code: 0, message: 'success', data: ledgers });
+    const ledgers = await prisma.ledger.findMany({
+      where: { consumerId: req.params.id },
+      orderBy: { updatedAt: 'desc' },
+      include: { merchant: true }
+    });
+
+    const result = ledgers.map(l => ({
+      ...l,
+      balance: Number(l.balance),
+      total_deposited: Number(l.totalDeposited),
+      total_spent: Number(l.totalSpent),
+      merchant_name: l.merchant?.name || '-',
+      merchant_industry: l.merchant?.industry || '-'
+    }));
+
+    res.json({ code: 0, message: 'success', data: result });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ code: 500, message: err.message });
+  } finally {
+    await prisma.$disconnect();
   }
 });
 
