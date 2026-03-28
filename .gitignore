@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Environment files (contain local DB paths, secrets)
+server/.env
+
+# Test keys (private key must not be committed)
+server/tests/keys/private_key.pem
+
+# Build artifacts
+*.local
+
+# OS files
+.DS_Store
